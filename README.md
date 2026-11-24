@@ -22,7 +22,7 @@
 
 1. 下载 [最新版](https://github.com/JesseBa1/NetLens/releases/latest) 的 zip，解压
 2. 双击 **`NetLens.cmd`** → UAC 点「是」→ 在网页里选抓多久
-3. 等 3 分钟（正常上网即可），浏览器会自动弹出结果
+3. 等它抓完（默认 3 分钟，可改 1/10/30 分钟或定时抽采），浏览器自动弹出结果
 
 不用装 Wireshark、不用装 Python、不用联网。分析全程在你自己的浏览器里完成。
 
@@ -266,8 +266,11 @@ NetLens\
 ├─ capture.ps1        pktmon 抓包 + 连接采样 + etl→pcapng
 ├─ web\
 │  ├─ index.html      界面
-│  ├─ app.js          渲染、图表、导出
-│  └─ core.js         pcap/pcapng 解析 + 流量分析（浏览器/Node 通用）
+│  ├─ app.js          渲染、图表、抓包设置、导出
+│  ├─ core.js         pcap/pcapng 解析 + 流量分析 + 多次采样合并（浏览器/Node 通用）
+│  └─ i18n.js         中/英/日/韩/葡 文案
+├─ screenshot.png             界面截图
+├─ screenshot-dialog.png      抓包设置截图
 ├─ captures\          抓包结果（已 gitignore）
 ├─ LICENSE            MIT
 └─ README.md
