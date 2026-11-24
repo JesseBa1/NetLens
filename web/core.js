@@ -612,11 +612,8 @@
 
     out.push({
       id: 'up_rate',
-      label: '持续上行速率',
-      value: upMbps.toFixed(2) + ' Mbps',
-      threshold: '> 2 Mbps 且超过下行 20%',
       pass: !(upMbps > 2 && upMbps > downMbps * 0.2),
-      detail: '平均上行 ' + upMbps.toFixed(2) + ' Mbps，下行 ' + downMbps.toFixed(2) + ' Mbps'
+      data: { upMbps: upMbps, downMbps: downMbps }
     });
 
     var bigUp = null;
@@ -625,66 +622,53 @@
     }
     out.push({
       id: 'max_flow_up',
-      label: '单条连接最大上传',
-      value: bigUp ? fmtMB(bigUp.up) : '-',
-      threshold: '> 20 MB 或 > 30% 总量',
       pass: !bigUp || !(bigUp.up > 20e6 || (bigUp.up > 2e6 && bigUp.up > ctx.bytesOut * 0.3)),
-      detail: bigUp ? (bigUp.proc + ' → ' + bigUp.server + (bigUp.domain ? ' (' + bigUp.domain + ')' : '')) : ''
+      data: {
+        flow: bigUp ? { proc: bigUp.proc, server: bigUp.server, domain: bigUp.domain, up: bigUp.up } : null,
+        bytesOut: ctx.bytesOut
+      }
     });
 
     var fan = null;
     ctx.procs.forEach(function (p) {
+      if (p.proc === '未识别') return;   // 无法归属进程时不参与 fan-out 判定，避免误报
       if (p.up > 300 * 1024 && p.remotes >= 20) {
         if (!fan || p.up > fan.up) fan = p;
       }
     });
     out.push({
       id: 'fanout',
-      label: '多对端上传（PCDN 特征）',
-      value: fan ? fan.proc + ' → ' + fan.remotes + ' 个远端' : '无',
-      threshold: '单进程 >20 个远端且上行 >300 KB',
       pass: !fan,
-      detail: fan ? fmtMB(fan.up) + ' 上传' : '最大 fan-out 未超阈值'
+      data: fan ? { proc: fan.proc, remotes: fan.remotes, up: fan.up } : { fanout: null }
     });
 
     var pubSyn = ctx.syns.filter(function (s) { return !isPrivate(s.src); });
     out.push({
       id: 'inbound',
-      label: '公网主动连入',
-      value: pubSyn.length ? pubSyn.length + ' 个来源' : '0',
-      threshold: '任何非内网 SYN',
       pass: pubSyn.length === 0,
-      detail: pubSyn.length ? pubSyn.slice(0, 3).map(function (s) { return s.src + ':' + s.port; }).join(', ') : '没有公网主机主动连接本机'
+      data: { count: pubSyn.length, peers: pubSyn.slice(0, 5) }
     });
 
     var udpPeers = ctx.udp.filter(function (u) { return u.up > 20000 && !isPrivate(u.ip); });
     out.push({
       id: 'udp_fanout',
-      label: 'UDP 对多 IP 发送',
-      value: udpPeers.length + ' 个远端',
-      threshold: '>10 个远端且每个 >20 KB',
       pass: udpPeers.length <= 10,
-      detail: udpPeers.length ? udpPeers.slice(0, 3).map(function (u) { return u.ip; }).join(', ') : 'UDP 流量很小'
+      data: { count: udpPeers.length, peers: udpPeers.slice(0, 5) }
     });
 
     var unknown = 0;
     ctx.flows.forEach(function (f) { if (!f.proc || f.proc === '未识别') unknown += f.up; });
     out.push({
       id: 'unknown_proc',
-      label: '未归属进程的上行',
-      value: fmtMB(unknown),
-      threshold: '> 10% 上行',
       pass: unknown <= 1e6 || unknown <= ctx.bytesOut * 0.1,
-      detail: '未能匹配到进程的上行字节数'
+      data: { bytes: unknown, pct: ctx.bytesOut ? (unknown / ctx.bytesOut * 100) : 0 }
     });
 
+    var peakMbps = ctx.peakUpBytesPerBucket * 8 / ctx.bucketSize / 1e6;
     out.push({
       id: 'peak_up',
-      label: '上行峰值（1 秒粒度）',
-      value: (ctx.peakUpBytesPerBucket * 8 / ctx.bucketSize / 1e6).toFixed(2) + ' Mbps',
-      threshold: '> 10 Mbps 视为突发上传',
-      pass: ctx.peakUpBytesPerBucket * 8 / ctx.bucketSize / 1e6 <= 10,
-      detail: ''
+      pass: peakMbps <= 10,
+      data: { mbps: peakMbps, bucket: ctx.bucketSize }
     });
 
     return out;

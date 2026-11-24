@@ -1,205 +1,237 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NetLens · 看看你的电脑在偷偷上传什么</title>
+<title>NetLens</title>
 <style>
   :root{
+    --bg:#f5f7fb; --bg2:#eef2f9; --card:#ffffff; --card2:#f7f9fd;
+    --line:#e2e8f2; --line2:#eef2f8;
+    --text:#15202e; --muted:#5d6b80; --dim:#8a97ab;
+    --accent:#2f6fed; --accent-weak:rgba(47,111,237,.10);
+    --ok:#0f9d76; --ok-weak:rgba(15,157,118,.10);
+    --warn:#b26b00; --warn-weak:rgba(255,176,32,.16); --up-line:#ef8b13;
+    --bad:#d9384a; --bad-weak:rgba(217,56,74,.10);
+    --shadow:0 1px 2px rgba(16,32,55,.04), 0 8px 24px rgba(16,32,55,.05);
+    --chip:#f0f4fb; --chip-line:#e1e8f4;
+    --mono:"Cascadia Mono","Consolas","SFMono-Regular",ui-monospace,monospace;
+  }
+  [data-theme="dark"]{
     --bg:#0b0f17; --bg2:#0f1520; --card:#141b28; --card2:#182132;
-    --line:#222d40; --text:#e8eefc; --muted:#8b9ab5; --dim:#5f6f8c;
-    --accent:#4f8cff; --ok:#33d69f; --warn:#ffb020; --bad:#ff5d6c;
-    --mono:"Cascadia Mono","Consolas","SFMono-Regular",monospace;
+    --line:#222d40; --line2:#1b2434;
+    --text:#e8eefc; --muted:#8b9ab5; --dim:#5f6f8c;
+    --accent:#4f8cff; --accent-weak:rgba(79,140,255,.14);
+    --ok:#33d69f; --ok-weak:rgba(51,214,159,.12);
+    --warn:#ffb020; --warn-weak:rgba(255,176,32,.12); --up-line:#ffb020;
+    --bad:#ff5d6c; --bad-weak:rgba(255,93,108,.12);
+    --shadow:0 1px 2px rgba(0,0,0,.2);
+    --chip:#1d2839; --chip-line:#27354b;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
-    font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;font-size:14px}
+    font-family:"Microsoft YaHei UI","Segoe UI",system-ui,-apple-system,sans-serif;font-size:14px}
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
-  button{font-family:inherit}
-  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;
-    padding:12px 22px;background:rgba(11,15,23,.86);backdrop-filter:blur(10px);
-    border-bottom:1px solid var(--line)}
-  .logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px}
-  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
-    box-shadow:0 0 12px var(--accent)}
-  .logo small{color:var(--muted);font-weight:400;margin-left:6px}
+  button,select{font-family:inherit}
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+    padding:11px 20px;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.3px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  .logo small{color:var(--muted);font-weight:400;margin-left:4px;font-size:12px}
   .spacer{flex:1}
   .btn{border:1px solid var(--line);background:var(--card);color:var(--text);
-    padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
-  .btn:hover{border-color:#33507d;background:var(--card2)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#04101f;font-weight:600}
-  .btn.primary:hover{filter:brightness(1.08)}
+    padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s;white-space:nowrap}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .btn.primary:hover{filter:brightness(1.06);color:#fff}
   .btn:disabled{opacity:.45;cursor:not-allowed}
-  .btn.big{padding:11px 22px;font-size:15px;border-radius:10px}
+  .btn:disabled:hover{border-color:var(--line);color:var(--text)}
+  .btn.icon{padding:7px 9px;font-size:14px}
+  select.lang{border:1px solid var(--line);background:var(--card);color:var(--text);
+    padding:6px 8px;border-radius:8px;font-size:12.5px;cursor:pointer;outline:none}
   main{padding:22px;max-width:1500px;margin:0 auto}
 
-  /* ---------- welcome ---------- */
-  .hero{text-align:center;padding:34px 16px 10px}
-  .hero h1{font-size:28px;margin:0 0 10px;letter-spacing:.5px}
-  .hero p{color:var(--muted);margin:6px 0;font-size:15px;line-height:1.8}
+  .hero{text-align:center;padding:30px 16px 8px}
+  .hero h1{font-size:29px;margin:0 0 10px;letter-spacing:.3px}
+  .hero p{color:var(--muted);margin:5px 0;font-size:15px;line-height:1.75}
   .starters{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;
-    max-width:900px;margin:26px auto 0}
+    max-width:940px;margin:26px auto 0}
   .starter{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;
-    text-align:left;display:flex;flex-direction:column;gap:6px}
-  .starter .n{color:var(--accent);font-weight:700;font-size:12px;letter-spacing:1px}
+    text-align:left;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+  .starter .n{color:var(--accent);font-weight:700;font-size:11px;letter-spacing:1.2px}
   .starter b{font-size:15px}
   .starter p{color:var(--dim);font-size:12.5px;margin:0;line-height:1.7;flex:1}
-  .starter .btn{margin-top:10px;text-align:center}
-  .dropzone{border:1.5px dashed #2b3a55;border-radius:14px;padding:16px;max-width:900px;margin:18px auto 0;
-    color:var(--dim);font-size:13px;transition:.2s}
-  .dropzone.over{border-color:var(--accent);background:rgba(79,140,255,.08);color:var(--text)}
+  .starter .btn{margin-top:12px;text-align:center}
+  .dropzone{border:1.5px dashed var(--line);border-radius:14px;padding:16px;max-width:940px;margin:18px auto 0;
+    color:var(--dim);font-size:13px;transition:.2s;text-align:center;background:var(--card2)}
+  .dropzone.over{border-color:var(--accent);background:var(--accent-weak);color:var(--text)}
+  .dropzone .hintline{color:var(--warn);margin-top:6px;font-size:12.5px}
 
-  /* ---------- result ---------- */
-  .verdict{border-radius:12px;padding:14px 18px;margin-bottom:16px;border:1px solid var(--line);
-    display:flex;gap:14px;align-items:center;background:var(--card)}
-  .verdict .icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
-    justify-content:center;font-size:20px;flex:none}
-  .verdict.ok .icon{background:rgba(51,214,159,.15);color:var(--ok)}
-  .verdict.warn .icon{background:rgba(255,176,32,.15);color:var(--warn)}
-  .verdict.bad .icon{background:rgba(255,93,108,.15);color:var(--bad)}
-  .verdict .t{font-size:16px;font-weight:600;margin-bottom:3px}
-  .verdict .d{color:var(--muted);font-size:12.5px;line-height:1.7}
+  .verdict{border-radius:12px;padding:13px 16px;margin-bottom:14px;border:1px solid var(--line);
+    display:flex;gap:13px;align-items:center;background:var(--card);box-shadow:var(--shadow)}
+  .verdict .icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:19px;flex:none;font-weight:700}
+  .verdict.ok .icon{background:var(--ok-weak);color:var(--ok)}
+  .verdict.warn .icon{background:var(--warn-weak);color:var(--warn)}
+  .verdict.bad .icon{background:var(--bad-weak);color:var(--bad)}
+  .verdict .t{font-size:15.5px;font-weight:600;margin-bottom:2px}
+  .verdict .d{color:var(--muted);font-size:12.5px;line-height:1.65}
+  .verdict.ok{border-left:3px solid var(--ok)}
+  .verdict.warn{border-left:3px solid var(--warn)}
+  .verdict.bad{border-left:3px solid var(--bad)}
 
   .grid{display:grid;gap:12px}
   .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-  .card .k{color:var(--muted);font-size:12px;margin-bottom:7px;display:flex;gap:5px;align-items:center}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+  .card .k{color:var(--muted);font-size:12px;margin-bottom:6px;display:flex;gap:5px;align-items:center}
   .card .k .i{width:14px;height:14px;border-radius:50%;border:1px solid var(--dim);color:var(--dim);
-    font-size:10px;line-height:12px;text-align:center;cursor:help;flex:none}
-  .card .v{font-family:var(--mono);font-size:20px;font-weight:600}
-  .card .s{color:var(--dim);font-size:11px;margin-top:5px}
+    font-size:9.5px;line-height:12px;text-align:center;cursor:help;flex:none;font-family:var(--mono)}
+  .card .v{font-family:var(--mono);font-size:20px;font-weight:600;letter-spacing:-.3px}
+  .card .s{color:var(--dim);font-size:11px;margin-top:4px;line-height:1.5}
   .v.up{color:var(--warn)} .v.down{color:var(--accent)} .v.ok{color:var(--ok)} .v.bad{color:var(--bad)}
-  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:6px 0 16px;flex-wrap:wrap}
-  .tab{padding:9px 15px;border-radius:9px 9px 0 0;cursor:pointer;color:var(--muted);
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:6px 0 16px;flex-wrap:wrap}
+  .tab{padding:9px 14px;border-radius:9px 9px 0 0;cursor:pointer;color:var(--muted);
     border:1px solid transparent;border-bottom:none;font-size:13px}
   .tab:hover{color:var(--text)}
-  .tab.active{color:var(--text);background:var(--card);border-color:var(--line)}
+  .tab.active{color:var(--accent);background:var(--card);border-color:var(--line);font-weight:600}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #1b2434;white-space:nowrap}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
   th{color:var(--muted);font-weight:500;font-size:12px;position:sticky;top:0;background:var(--card);z-index:5}
-  tbody tr:hover{background:#131b29}
+  tbody tr:hover{background:var(--card2)}
   td.num,th.num{text-align:right;font-family:var(--mono)}
   .mono{font-family:var(--mono)}
   .muted{color:var(--muted)} .dim{color:var(--dim)} .small{font-size:12px}
   .tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:11px;
-    background:#1d2839;color:var(--muted);border:1px solid #27354b}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;font-size:12px}
-  .pill.ok{background:rgba(51,214,159,.12);color:var(--ok)}
-  .pill.warn{background:rgba(255,176,32,.12);color:var(--warn)}
+    background:var(--chip);color:var(--muted);border:1px solid var(--chip-line)}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600}
+  .pill.ok{background:var(--ok-weak);color:var(--ok)}
+  .pill.warn{background:var(--warn-weak);color:var(--warn)}
   .checks{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
   .check{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
-    border-left:3px solid var(--ok)}
+    border-left:3px solid var(--ok);box-shadow:var(--shadow)}
   .check.warn{border-left-color:var(--warn)}
   .check.bad{border-left-color:var(--bad)}
   .check .t{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .check .t b{font-size:13px;font-weight:600}
-  .check .val{font-family:var(--mono);font-size:18px;margin:9px 0 4px}
-  .check .why{color:var(--muted);font-size:12.5px;line-height:1.7}
+  .check .val{font-family:var(--mono);font-size:18px;margin:8px 0 4px;font-weight:600}
+  .check .why{color:var(--muted);font-size:12.5px;line-height:1.65}
   .check .thr{color:var(--dim);font-size:11.5px;margin-top:6px}
-  .chartwrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px 6px;margin-bottom:16px}
-  .chartwrap .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+  .chartwrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px 8px;
+    margin-bottom:16px;box-shadow:var(--shadow);position:relative}
+  .chartwrap .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);align-items:center}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
-  canvas{display:block;width:100%}
+  canvas{display:block;width:100%;cursor:crosshair}
+  .chartTip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);
+    border-radius:9px;padding:8px 10px;font-size:12px;box-shadow:0 6px 20px rgba(16,32,55,.14);
+    display:none;z-index:10;min-width:132px}
+  .chartTip .r{display:flex;justify-content:space-between;gap:14px;line-height:1.7}
+  .chartTip .r b{font-family:var(--mono);font-weight:600}
+  .chartTip .r b.down{color:var(--accent)} .chartTip .r b.up{color:var(--up-line)}
+  .chartTip .t{color:var(--dim);font-size:11px;margin-bottom:2px}
   .split{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
   @media(max-width:1100px){.split{grid-template-columns:1fr}}
   h3{margin:0 0 10px;font-size:14px;font-weight:600}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
   .panel .body{max-height:430px;overflow:auto;margin:0 -6px}
-  .overlay{position:fixed;inset:0;background:rgba(6,9,14,.78);display:none;align-items:center;
-    justify-content:center;z-index:100;flex-direction:column;gap:16px}
+  .overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 80%,transparent);
+    backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:16px}
   .overlay.show{display:flex}
-  .spinner{width:44px;height:44px;border-radius:50%;border:3px solid #22314a;
+  .spinner{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);
     border-top-color:var(--accent);animation:spin .9s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
-    background:#182234;border:1px solid #2b3a55;color:var(--text);padding:10px 16px;border-radius:10px;
-    opacity:0;transition:.25s;z-index:200;font-size:13px}
+    background:var(--card);border:1px solid var(--line);color:var(--text);padding:10px 16px;border-radius:10px;
+    opacity:0;transition:.25s;z-index:200;font-size:13px;box-shadow:0 8px 28px rgba(16,32,55,.18)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  input.text{background:#0d1320;border:1px solid var(--line);color:var(--text);
+  input.text{background:var(--card);border:1px solid var(--line);color:var(--text);
     padding:7px 10px;border-radius:8px;font-family:var(--mono);font-size:12px;width:100%}
   .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .stat-inline{color:var(--muted);font-size:12px}
-  .warnbox{background:rgba(255,176,32,.08);border:1px solid #4a3a16;color:#ffd08a;
-    padding:9px 12px;border-radius:9px;font-size:12.5px;margin-bottom:14px}
-  .filebar{display:flex;align-items:center;gap:12px;margin-bottom:14px;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
+  .warnbox{background:var(--warn-weak);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);
+    color:var(--warn);padding:9px 12px;border-radius:9px;font-size:12.5px;margin-bottom:12px}
+  .filebar{display:flex;align-items:center;gap:12px;margin-bottom:12px;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
   .filebar b{color:var(--text);font-weight:600}
   #localIpsLine{max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  footer{margin-top:26px;color:var(--dim);font-size:12px;line-height:1.8}
+  footer{margin-top:24px;color:var(--dim);font-size:12px;line-height:1.8}
   .hidden{display:none!important}
-  /* help */
-  .help h2{font-size:17px;margin:26px 0 10px}
+  .help h2{font-size:16.5px;margin:24px 0 10px}
   .help h2:first-child{margin-top:0}
-  .help p,.help li{color:var(--muted);line-height:1.9;font-size:13.5px}
+  .help p,.help li{color:var(--muted);line-height:1.85;font-size:13.5px}
   .help li{margin:4px 0}
-  .help code{background:#0d1320;border:1px solid var(--line);border-radius:4px;padding:1px 6px;
-    font-family:var(--mono);font-size:12px;color:#c9d8f5}
+  .help code{background:var(--chip);border:1px solid var(--chip-line);border-radius:4px;padding:1px 6px;
+    font-family:var(--mono);font-size:12px;color:var(--text)}
   .help .steps{display:grid;gap:10px;margin:12px 0}
-  .help .step{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);
+  .help .step{display:flex;gap:12px;background:var(--card2);border:1px solid var(--line);
     border-radius:10px;padding:12px 14px}
-  .help .step .num{width:24px;height:24px;flex:none;border-radius:50%;background:rgba(79,140,255,.15);
+  .help .step .num{width:24px;height:24px;flex:none;border-radius:50%;background:var(--accent-weak);
     color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
-  .help .step .txt{font-size:13px;line-height:1.8;color:var(--text)}
-  .help .step .txt small{color:var(--dim);display:block;margin-top:2px}
+  .help .step .txt{font-size:13px;line-height:1.75;color:var(--text)}
+  .help .step .txt small{color:var(--dim);display:block;margin-top:2px;font-size:12px}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo"><span class="dot"></span>NetLens<small>本地流量分析</small></div>
+  <div class="logo"><span class="dot"></span>NetLens<small data-i18n="app.tagline">本地流量分析</small></div>
   <div class="spacer"></div>
-  <button class="btn" id="btnRecapture" style="display:none">重新抓包</button>
-  <button class="btn" id="btnOpen">打开抓包文件</button>
-  <div class="dropdown" style="position:relative">
-    <button class="btn" id="btnExport">导出 ▾</button>
-    <div id="exportMenu" class="hidden" style="position:absolute;right:0;top:38px;background:var(--card2);
-      border:1px solid var(--line);border-radius:10px;padding:6px;min-width:170px;z-index:30">
-      <button class="btn" data-export="md" style="display:block;width:100%;text-align:left;border:none;background:none">Markdown 报告</button>
-      <button class="btn" data-export="csv" style="display:block;width:100%;text-align:left;border:none;background:none">连接明细 CSV</button>
-      <button class="btn" data-export="json" style="display:block;width:100%;text-align:left;border:none;background:none">JSON 数据</button>
+  <select class="lang" id="langSelect" title="Language">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+    <option value="ko">한국어</option>
+    <option value="pt">Português</option>
+  </select>
+  <button class="btn icon" id="btnTheme" title="Theme">☾</button>
+  <button class="btn" id="btnRecapture" style="display:none" data-i18n="btn.recapture">重新抓包</button>
+  <button class="btn" id="btnOpen" data-i18n="btn.open">打开抓包文件</button>
+  <div style="position:relative">
+    <button class="btn" id="btnExport" data-i18n="btn.export">导出 ▾</button>
+    <div id="exportMenu" class="hidden" style="position:absolute;right:0;top:38px;background:var(--card);
+      border:1px solid var(--line);border-radius:10px;padding:6px;min-width:170px;z-index:30;box-shadow:var(--shadow)">
+      <button class="btn" data-export="md" style="display:block;width:100%;text-align:left;border:none;background:none" data-i18n="export.md">Markdown 报告</button>
+      <button class="btn" data-export="csv" style="display:block;width:100%;text-align:left;border:none;background:none" data-i18n="export.csv">连接明细 CSV</button>
+      <button class="btn" data-export="json" style="display:block;width:100%;text-align:left;border:none;background:none" data-i18n="export.json">JSON 数据</button>
     </div>
   </div>
 </header>
 
 <main>
-  <!-- ============ 欢迎页 ============ -->
   <section id="dropZone">
     <div class="hero">
-      <h1>看看你的电脑，正在偷偷上传什么</h1>
-      <p>抓 3 分钟网络流量，逐条列出每个程序连了谁、传了多少，<br>
-         并自动检查 PCDN 偷跑、后台偷偷上传、被公网扫描等异常。</p>
+      <h1 data-i18n="hero.title">看看你的电脑，正在偷偷上传什么</h1>
+      <p data-i18n="hero.sub1">抓 3 分钟网络流量，逐条列出每个程序连了谁、传了多少，</p>
+      <p data-i18n="hero.sub2">并自动检查 PCDN 偷跑、后台偷偷上传、被公网扫描等异常。</p>
     </div>
 
     <div class="starters">
       <div class="starter">
-        <div class="n">方式一</div>
-        <b>直接抓包（推荐）</b>
-        <p>自动抓 3 分钟，抓完跳到结果页。需要管理员权限，会弹一次 UAC。</p>
-        <button class="btn primary" id="btnStartCapture">开始抓包</button>
+        <div class="n" data-i18n="w1.tag">方式一</div>
+        <b data-i18n="w1.title">直接抓包（推荐）</b>
+        <p data-i18n="w1.desc">自动抓 3 分钟，抓完跳到结果页。需要管理员权限，会弹一次 UAC。</p>
+        <button class="btn primary" id="btnStartCapture" data-i18n="w1.btn">开始抓包</button>
       </div>
       <div class="starter">
-        <div class="n">方式二</div>
-        <b>打开已有文件</b>
-        <p>用 Wireshark / tcpdump 抓的 <span class="mono">.pcapng</span>、<span class="mono">.pcap</span> 也能分析。</p>
-        <button class="btn" id="btnPick2">选择文件</button>
+        <div class="n" data-i18n="w2.tag">方式二</div>
+        <b data-i18n="w2.title">打开已有文件</b>
+        <p data-i18n="w2.desc">用 Wireshark / tcpdump 抓的 pcapng、pcap 也能分析。</p>
+        <button class="btn" id="btnPick2" data-i18n="w2.btn">选择文件</button>
       </div>
       <div class="starter">
-        <div class="n">方式三</div>
-        <b>先看示例报告</b>
-        <p>不想抓包？点开一份示例，先看看这个工具能给出什么结论。</p>
-        <button class="btn" id="btnDemo2">查看示例</button>
+        <div class="n" data-i18n="w3.tag">方式三</div>
+        <b data-i18n="w3.title">先看示例报告</b>
+        <p data-i18n="w3.desc">不想抓包？点开一份示例，先看看这个工具能给出什么结论。</p>
+        <button class="btn" id="btnDemo2" data-i18n="w3.btn">查看示例</button>
       </div>
     </div>
 
     <div class="dropzone" id="droparea">
-      也可以把抓包文件直接拖到这里 · 全程在本机分析，不上传任何数据
-      <span id="captureHint" class="hidden" style="display:block;margin-top:6px;color:var(--warn)">
-        当前是"直接打开网页"模式，无法抓包。要抓包请双击 NetLens.cmd 启动。
-      </span>
+      <div data-i18n="drop.hint">也可以把抓包文件直接拖到这里 · 全程在本机分析，不上传任何数据</div>
+      <div class="hintline hidden" id="captureHint" data-i18n="drop.captureHint">当前是"直接打开网页"模式，无法抓包。要抓包请双击 NetLens.cmd 启动。</div>
     </div>
   </section>
 
-  <!-- ============ 结果页 ============ -->
   <section id="result" class="hidden">
     <div class="filebar">
       <span id="fileInfo"></span>
@@ -215,129 +247,91 @@
     <div class="cards grid" id="summaryCards"></div>
 
     <div class="tabs" id="tabs">
-      <div class="tab active" data-tab="overview">总览</div>
-      <div class="tab" data-tab="checks">异常判定</div>
-      <div class="tab" data-tab="procs">进程</div>
-      <div class="tab" data-tab="remotes">远端 IP</div>
-      <div class="tab" data-tab="domains">域名</div>
-      <div class="tab" data-tab="flows">连接明细</div>
-      <div class="tab" data-tab="help">使用说明</div>
-      <div class="tab" data-tab="settings">设置</div>
+      <div class="tab active" data-tab="overview" data-i18n="tab.overview">总览</div>
+      <div class="tab" data-tab="checks" data-i18n="tab.checks">异常判定</div>
+      <div class="tab" data-tab="procs" data-i18n="tab.procs">进程</div>
+      <div class="tab" data-tab="remotes" data-i18n="tab.remotes">远端 IP</div>
+      <div class="tab" data-tab="domains" data-i18n="tab.domains">域名</div>
+      <div class="tab" data-tab="flows" data-i18n="tab.flows">连接明细</div>
+      <div class="tab" data-tab="help" data-i18n="tab.help">使用说明</div>
+      <div class="tab" data-tab="settings" data-i18n="tab.settings">设置</div>
     </div>
 
     <div id="tab-overview">
       <div class="chartwrap">
         <div class="head">
-          <h3 style="margin:0">流量时间线</h3>
+          <h3 style="margin:0" data-i18n="ov.chart">流量时间线</h3>
           <div class="legend">
-            <span><i style="background:#4f8cff"></i>下行（左轴）</span>
-            <span><i style="background:#ffb020"></i>上行（右轴）</span>
+            <span><i style="background:var(--accent)"></i><span data-i18n="legend.down">下行（左轴）</span></span>
+            <span><i style="background:var(--up-line)"></i><span data-i18n="legend.up">上行（右轴）</span></span>
             <span class="dim" id="chartHint"></span>
           </div>
         </div>
         <canvas id="chart" height="230"></canvas>
-        <p class="dim small" style="margin:2px 0 8px">
-          横轴是抓包内的秒数；把鼠标放到曲线上，可以看到那一小段的上传/下载速度。
-        </p>
+        <div class="chartTip" id="chartTip">
+          <div class="t"></div>
+          <div class="r"><span data-i18n="legend.downShort">下行</span><b class="down"></b></div>
+          <div class="r"><span data-i18n="legend.upShort">上行</span><b class="up"></b></div>
+        </div>
+        <p class="dim small" style="margin:2px 0 8px" data-i18n="ov.chartHint">横轴是抓包内的秒数；把鼠标移到曲线上，数值会跟着指针走。</p>
       </div>
       <div class="split">
         <div class="panel">
-          <h3>上传最多的连接</h3>
+          <h3 data-i18n="ov.topUp">上传最多的连接</h3>
           <div class="body"><table id="tblTopUp"></table></div>
         </div>
         <div class="panel">
-          <h3>下载最多的远端</h3>
+          <h3 data-i18n="ov.topDown">下载最多的远端</h3>
           <div class="body"><table id="tblTopDown"></table></div>
         </div>
       </div>
     </div>
 
     <div id="tab-checks" class="hidden">
-      <p class="muted small" style="margin:0 0 12px;line-height:1.8">
-        下面 7 项是常见"不正常流量"的特征。绿色 = 没有触发；黄色 = 出现了该类特征，需要你自己判断是不是正常业务
-        （例如你本来就装了远程串流软件，出现"公网主动连入"就可能是正常的）。
+      <p class="muted small" style="margin:0 0 12px;line-height:1.8" data-i18n="checks.intro">
+        下面 7 项是常见"不正常流量"的特征。绿色 = 没有触发；黄色 = 出现了该类特征，需要你自己判断是不是正常业务。
       </p>
       <div class="grid checks" id="checkCards"></div>
-      <footer>判定阈值：上行 &gt;2 Mbps 且超过下行 20%；单连接上传 &gt;20 MB；单进程 ≥20 个远端且上传 &gt;300 KB；
-        任何公网主动连入；UDP &gt;10 个远端且各 &gt;20 KB。阈值可在 <code>web/core.js</code> 里修改。</footer>
+      <footer data-i18n="checks.footer">判定阈值说明。</footer>
     </div>
 
     <div id="tab-procs" class="hidden">
-      <p class="muted small" style="margin:0 0 10px">按程序汇总：谁传了多少、连了几个远端。</p>
+      <p class="muted small" style="margin:0 0 10px" data-i18n="procs.intro">按程序汇总：谁传了多少、连了几个远端。</p>
       <div class="panel"><div class="body"><table id="tblProcs"></table></div></div>
     </div>
 
     <div id="tab-remotes" class="hidden">
-      <p class="muted small" style="margin:0 0 10px">按远端 IP 汇总：你的流量都发到了哪些服务器。</p>
+      <p class="muted small" style="margin:0 0 10px" data-i18n="remotes.intro">按远端 IP 汇总：你的流量都发到了哪些服务器。</p>
       <div class="panel"><div class="body"><table id="tblRemotes"></table></div></div>
     </div>
 
     <div id="tab-domains" class="hidden">
-      <p class="muted small" style="margin:0 0 10px">从 TLS SNI / DNS / HTTP Host 还原出的域名（HTTPS 正文加密，仅供参考）。</p>
+      <p class="muted small" style="margin:0 0 10px" data-i18n="domains.intro">从 TLS SNI / DNS / HTTP Host 还原出的域名（HTTPS 正文加密，仅供参考）。</p>
       <div class="panel"><div class="body"><table id="tblDomains"></table></div></div>
     </div>
 
     <div id="tab-flows" class="hidden">
       <div class="row" style="margin-bottom:10px">
-        <input class="text" id="flowFilter" placeholder="过滤：进程 / IP / 端口 / 域名" style="max-width:340px">
+        <input class="text" id="flowFilter" data-i18n-ph="flows.filter" placeholder="过滤：进程 / IP / 端口 / 域名" style="max-width:340px">
         <span class="stat-inline" id="flowCountLine"></span>
       </div>
       <div class="panel"><div class="body" style="max-height:560px"><table id="tblFlows"></table></div></div>
     </div>
 
-    <div id="tab-help" class="hidden">
-      <div class="panel help">
-        <h2>三步用起来</h2>
-        <div class="steps">
-          <div class="step"><div class="num">1</div><div class="txt"><b>抓包</b> —— 双击 <code>NetLens.cmd</code>，UAC 点"是"，等 3 分钟（这期间正常上网）。
-            <small>不用装 Wireshark，用的是 Windows 自带的 pktmon。</small></div></div>
-          <div class="step"><div class="num">2</div><div class="txt"><b>看结论</b> —— 结果页顶部的横幅会直接告诉你"有没有发现异常上传"。
-            <small>绿色=没发现；黄色=出现了值得注意的特征，点"异常判定"看详情。</small></div></div>
-          <div class="step"><div class="num">3</div><div class="txt"><b>看细节</b> —— "进程"页看哪个程序传得多，"连接明细"页看每一条连接。
-            <small>可以把结果导出成 Markdown / CSV 存档。</small></div></div>
-        </div>
-
-        <h2>这些数字是什么意思</h2>
-        <ul>
-          <li><b>上行 / 下行</b>：这台电脑发出的 / 收到的数据量。家庭宽带通常下行远大于上行。</li>
-          <li><b>应用层上行</b>：去掉 TCP 确认包和协议头之后，真正的"内容上传"。判断偷传要看这个。</li>
-          <li><b>远端 IP</b>：你连过去的服务器地址；"域名"列是它的名字（能解析出来才有）。</li>
-          <li><b>上行峰值</b>：1 秒内最高上传速度。PCDN 偷跑往往长时间维持在几 Mbps 以上。</li>
-        </ul>
-
-        <h2>什么情况算"不正常"</h2>
-        <ul>
-          <li>你没在传文件、没开直播，但上行长期 &gt; 2 Mbps；</li>
-          <li>某个陌生进程向几十个陌生 IP 同时上传（PCDN 的典型特征）；</li>
-          <li>有公网 IP 主动连进来（说明有服务暴露在公网，或被扫描）；</li>
-          <li>上行远大于下行，且持续存在。</li>
-        </ul>
-
-        <h2>常见问题</h2>
-        <ul>
-          <li><b>提示"拒绝访问"</b>：没有管理员权限。请从 <code>NetLens.cmd</code> 启动并允许 UAC；只分析文件则不需要。</li>
-          <li><b>抓到的流量很小</b>：这 3 分钟电脑基本空闲，正常。可以在你怀疑的场景下再抓一次。</li>
-          <li><b>看不到具体网站</b>：HTTPS 是加密的，走了代理（如 Clash）就更看不到；只能看到代理节点 IP。要看站点需要代理软件自己的连接日志。</li>
-          <li><b>能不能抓别人的电脑</b>：不能，只抓本机。</li>
-          <li><b>数据会不会被上传</b>：不会。解析全在本机浏览器里完成，工具不联网。</li>
-        </ul>
-      </div>
-    </div>
+    <div id="tab-help" class="hidden"><div class="panel help" id="helpBody"></div></div>
 
     <div id="tab-settings" class="hidden">
       <div class="panel">
-        <h3>本机 IP</h3>
-        <p class="muted small">用于区分上下行。留空则自动推断；可填多个，逗号分隔。</p>
-        <input class="text" id="ipsInput" placeholder="例如 192.168.1.10, 10.0.0.5">
-        <p style="margin-top:10px"><button class="btn" id="btnReanalyze">用这些 IP 重新分析</button>
-          <span class="dim small">（需要重新拖入文件才生效）</span></p>
-        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
-        <h3>关于</h3>
-        <p class="muted small" style="line-height:1.9">
-          NetLens 离线版：所有解析都在本机浏览器完成，不联网、不上传数据。<br>
-          去重说明：pktmon 会在多个驱动组件重复记录同一个包，NetLens 按「五元组 + 序号 + 载荷指纹 + 3ms 窗口」去重。<br>
-          统计单位为 IP 包字节（不含以太网帧头）；「载荷」为去掉 TCP/IP 头与纯 ACK 后的应用层字节。
+        <h3 data-i18n="settings.ips.title">本机 IP</h3>
+        <p class="muted small" data-i18n="settings.ips.desc">用于区分上下行。留空则自动推断；可填多个，逗号分隔。</p>
+        <input class="text" id="ipsInput" placeholder="192.168.1.10, 10.0.0.5">
+        <p style="margin-top:10px">
+          <button class="btn" id="btnReanalyze" data-i18n="settings.ips.btn">用这些 IP 重新分析</button>
+          <span class="dim small" data-i18n="settings.ips.note">（需要重新拖入文件才生效）</span>
         </p>
+        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+        <h3 data-i18n="settings.about.title">关于</h3>
+        <p class="muted small" style="line-height:1.9" id="aboutBody"></p>
       </div>
     </div>
   </section>
@@ -345,11 +339,12 @@
 
 <div class="overlay" id="overlay">
   <div class="spinner"></div>
-  <div id="overlayText">正在解析…</div>
+  <div id="overlayText"></div>
 </div>
 <div class="toast" id="toast"></div>
 <input type="file" id="fileInput" accept=".pcap,.pcapng,.cap" class="hidden">
 
+<script src="i18n.js"></script>
 <script src="core.js"></script>
 <script src="app.js"></script>
 </body>
