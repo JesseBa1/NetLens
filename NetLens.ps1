@@ -183,10 +183,21 @@ try {
           Send-Json $ctx ([ordered]@{ ok = $false; message = '正在抓包，请稍候' })
         } else {
           if ($job) { Remove-Job $job -Force -ErrorAction SilentlyContinue }
+          $mode = $req.QueryString['mode']
           $sec = 180
           if ($req.QueryString['seconds']) { $sec = [int]$req.QueryString['seconds'] }
-          $job = Start-Job -FilePath (Join-Path $root 'capture.ps1') -ArgumentList $sec, $root
-          Send-Json $ctx ([ordered]@{ ok = $true; seconds = $sec })
+          if ($mode -eq 'series') {
+            $times = 12; $interval = 600
+            if ($req.QueryString['times']) { $times = [int]$req.QueryString['times'] }
+            if ($req.QueryString['interval']) { $interval = [int]$req.QueryString['interval'] }
+            if ($sec -lt 5) { $sec = 30 }
+            $job = Start-Job -FilePath (Join-Path $root 'capture.ps1') `
+              -ArgumentList $sec, $root, '', $true, $times, $interval
+            Send-Json $ctx ([ordered]@{ ok = $true; mode = 'series'; seconds = $sec; times = $times; interval = $interval })
+          } else {
+            $job = Start-Job -FilePath (Join-Path $root 'capture.ps1') -ArgumentList $sec, $root
+            Send-Json $ctx ([ordered]@{ ok = $true; mode = 'single'; seconds = $sec })
+          }
         }
       }
       elseif ($path -eq '/api/shutdown') {
@@ -195,12 +206,16 @@ try {
       }
       elseif ($path -eq '/api/file') {
         $name = $req.QueryString['name']
-        $safe = [IO.Path]::GetFileName($name)
-        $full = Join-Path $capDir $safe
-        if ($name -and (Test-Path $full)) {
-          Send-File $ctx $full
+        $rel = ($name -replace '\\', '/').TrimStart('/')
+        if ($rel -and $rel -notmatch '\.\.') {
+          $full = Join-Path $capDir $rel
+          if (Test-Path -LiteralPath $full) {
+            Send-File $ctx $full
+          } else {
+            Send-Json $ctx ([ordered]@{ error = 'not found' }) 404
+          }
         } else {
-          Send-Json $ctx ([ordered]@{ error = 'not found' }) 404
+          Send-Json $ctx ([ordered]@{ error = 'bad name' }) 400
         }
       }
       else {

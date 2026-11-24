@@ -606,6 +606,162 @@
     };
   }
 
+  function hostOf(s) {
+    var i = s.lastIndexOf(':');
+    return i > 0 ? s.slice(0, i) : s;
+  }
+
+  function mergeSeries(results) {
+    var meta = {
+      mode: 'series', duration: 0, packets: 0, dupPackets: 0,
+      bytesOut: 0, bytesIn: 0, payloadOut: 0, payloadIn: 0,
+      upMbps: 0, downMbps: 0, peakUpMbps: 0, peakDownMbps: 0,
+      distinctRemotes: 0, localIps: [], warnings: [], sampleCount: results.length
+    };
+    var procMap = new Map(), flowMap = new Map(), remMap = new Map(),
+      domMap = new Map(), portMap = new Map(), synMap = new Map(), udpMap = new Map();
+    var ips = new Set(), samples = [];
+    var peakBytes = 0;
+
+    results.forEach(function (r, idx) {
+      var m = r.meta;
+      meta.duration += m.duration;
+      meta.packets += m.packets;
+      meta.dupPackets += m.dupPackets;
+      meta.bytesOut += m.bytesOut;
+      meta.bytesIn += m.bytesIn;
+      meta.payloadOut += m.payloadOut;
+      meta.payloadIn += m.payloadIn;
+      if (m.peakUpMbps > meta.peakUpMbps) meta.peakUpMbps = m.peakUpMbps;
+      if (m.peakDownMbps > meta.peakDownMbps) meta.peakDownMbps = m.peakDownMbps;
+      if (m.peakUpMbps * 1e6 / 8 > peakBytes) peakBytes = m.peakUpMbps * 1e6 / 8;
+      (m.localIps || []).forEach(function (ip) { ips.add(ip); });
+
+      var top = null;
+      (r.procs || []).forEach(function (p) { if (!top || p.up > top.up) top = p; });
+      samples.push({
+        index: idx + 1, ts: m.firstTs, seconds: m.duration,
+        up: m.bytesOut, down: m.bytesIn, packets: m.packets,
+        topProc: top ? top.proc : '', topUp: top ? top.up : 0
+      });
+
+      (r.procs || []).forEach(function (p) {
+        var k = p.proc + '|' + p.pid;
+        var e = procMap.get(k);
+        if (!e) {
+          e = { proc: p.proc, pid: p.pid, up: 0, down: 0, payloadUp: 0, flows: 0, maxFlow: 0, appear: 0, remotes: new Set(), domains: new Set() };
+          procMap.set(k, e);
+        }
+        e.up += p.up; e.down += p.down; e.payloadUp += p.payloadUp; e.flows += p.flows;
+        e.maxFlow = Math.max(e.maxFlow, p.maxFlow);
+        (p.domains || []).forEach(function (d) { e.domains.add(d); });
+        if (p.up >= 30000) e.appear++;
+      });
+
+      (r.flows || []).forEach(function (f) {
+        var k = f.proto + '|' + f.client + '|' + f.server;
+        var e = flowMap.get(k);
+        if (!e) {
+          e = { proto: f.proto, client: f.client, server: f.server, up: 0, down: 0, payloadUp: 0, pkts: 0, pid: f.pid, proc: f.proc, domain: f.domain, first: f.first, last: f.last };
+          flowMap.set(k, e);
+        }
+        e.up += f.up; e.down += f.down; e.payloadUp += f.payloadUp; e.pkts += f.pkts;
+        var pe = procMap.get(f.proc + '|' + f.pid);
+        if (pe) pe.remotes.add(hostOf(f.server));
+      });
+
+      (r.remotes || []).forEach(function (x) {
+        var e = remMap.get(x.ip);
+        if (!e) { e = { ip: x.ip, up: 0, down: 0, name: x.name || '' }; remMap.set(x.ip, e); }
+        e.up += x.up; e.down += x.down;
+        if (!e.name && x.name) e.name = x.name;
+      });
+      (r.domains || []).forEach(function (d) {
+        var e = domMap.get(d.name);
+        if (!e) { e = { name: d.name, up: 0, down: 0 }; domMap.set(d.name, e); }
+        e.up += d.up; e.down += d.down;
+      });
+      (r.ports || []).forEach(function (p) {
+        var e = portMap.get(p.port);
+        if (!e) { e = { port: p.port, up: 0, down: 0 }; portMap.set(p.port, e); }
+        e.up += p.up; e.down += p.down;
+      });
+      (r.syns || []).forEach(function (s) {
+        var k = s.src + '|' + s.port;
+        synMap.set(k, (synMap.get(k) || 0) + s.count);
+      });
+      (r.udp || []).forEach(function (u) {
+        var e = udpMap.get(u.ip);
+        if (!e) { e = { ip: u.ip, up: 0 }; udpMap.set(u.ip, e); }
+        e.up += u.up;
+      });
+    });
+
+    meta.localIps = Array.from(ips);
+    var dur = Math.max(0.001, meta.duration);
+    meta.upMbps = meta.bytesOut * 8 / dur / 1e6;
+    meta.downMbps = meta.bytesIn * 8 / dur / 1e6;
+
+    var procs = [];
+    procMap.forEach(function (p) {
+      procs.push({
+        proc: p.proc, pid: p.pid, up: p.up, down: p.down, payloadUp: p.payloadUp,
+        flows: p.flows, remotes: p.remotes.size, maxFlow: p.maxFlow, appear: p.appear,
+        sampleCount: results.length, domains: Array.from(p.domains).slice(0, 12)
+      });
+    });
+    procs.sort(function (a, b) { return (b.up + b.down) - (a.up + a.down); });
+
+    var flows = [];
+    flowMap.forEach(function (f) {
+      flows.push({
+        proto: f.proto, client: f.client, server: f.server, up: f.up, down: f.down,
+        payloadUp: f.payloadUp, pkts: f.pkts, pid: f.pid, proc: f.proc,
+        domain: f.domain || '', first: f.first, last: f.last
+      });
+    });
+    flows.sort(function (a, b) { return (b.up + b.down) - (a.up + a.down); });
+
+    var remotes = [], domains = [], ports = [], syns = [], udp = [];
+    remMap.forEach(function (x) { remotes.push(x); });
+    remotes.sort(function (a, b) { return (b.up + b.down) - (a.up + a.down); });
+    meta.distinctRemotes = remotes.length;
+    domMap.forEach(function (d) { domains.push(d); });
+    domains.sort(function (a, b) { return (b.up + b.down) - (a.up + a.down); });
+    portMap.forEach(function (p) { ports.push(p); });
+    ports.sort(function (a, b) { return (b.up + b.down) - (a.up + a.down); });
+    synMap.forEach(function (c, k) {
+      var i = k.lastIndexOf('|');
+      syns.push({ port: +k.slice(i + 1), src: k.slice(0, i), count: c });
+    });
+    syns.sort(function (a, b) { return b.count - a.count; });
+    udpMap.forEach(function (u) { udp.push(u); });
+    udp.sort(function (a, b) { return b.up - a.up; });
+
+    var checks = buildChecks({
+      dur: dur, upMbps: meta.upMbps, downMbps: meta.downMbps,
+      bytesOut: meta.bytesOut, bytesIn: meta.bytesIn,
+      flows: flows, procs: procs, remotes: remotes,
+      syns: syns, udp: udp,
+      peakUpBytesPerBucket: peakBytes, bucketSize: 1
+    });
+
+    return {
+      meta: meta,
+      timeline: [],
+      procs: procs,
+      flows: flows.slice(0, 3000),
+      flowCount: flows.length,
+      remotes: remotes.slice(0, 300),
+      ports: ports.slice(0, 60),
+      domains: domains,
+      syns: syns.slice(0, 100),
+      udp: udp.slice(0, 100),
+      checks: checks,
+      samples: samples
+    };
+  }
+
   function buildChecks(ctx) {
     var out = [];
     var upMbps = ctx.upMbps, downMbps = ctx.downMbps;
@@ -681,7 +837,7 @@
     return v + ' B';
   }
 
-  var api = { analyze: analyze, detectFormat: detectFormat, isPrivate: isPrivate, fmtMB: fmtMB };
+  var api = { analyze: analyze, mergeSeries: mergeSeries, buildChecks: buildChecks, detectFormat: detectFormat, isPrivate: isPrivate, fmtMB: fmtMB };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.NetLensCore = api;
 })(typeof self !== 'undefined' ? self : this);
