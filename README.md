@@ -10,10 +10,10 @@
 ![截图](screenshot.png)
 
 <p align="center">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-33d69f">
-  <img alt="No deps" src="https://img.shields.io/badge/dependencies-none-4f8cff">
-  <img alt="Offline" src="https://img.shields.io/badge/100%25-offline-ffb020">
+  <a href="#系统要求"><img alt="Windows 10 / 11" title="系统要求" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" title="MIT 许可证" src="https://img.shields.io/badge/license-MIT-33d69f"></a>
+  <a href="#它是怎么做到的"><img alt="Dependencies: none" title="零依赖实现" src="https://img.shields.io/badge/dependencies-none-4f8cff"></a>
+  <a href="#常见问题"><img alt="100% offline" title="完全离线" src="https://img.shields.io/badge/100%25-offline-ffb020"></a>
 </p>
 
 ---
