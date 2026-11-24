@@ -1,0 +1,13 @@
+# 抓包结果（含个人流量数据，绝对不要提交）
+captures/
+*.pcapng
+*.pcap
+*.etl
+status.json
+
+# 临时文件
+*.log
+*.tmp
+.edge*/
+node_modules/
+__pycache__/
