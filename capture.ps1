@@ -52,7 +52,10 @@ function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progre
 
   try { pktmon stop 2>&1 | Out-Null } catch { }
   Start-Sleep -Milliseconds 300
-  $startInfo = pktmon start --capture --comp nics --pkt-size 1024 -f $etl 2>&1
+  # 高码率场景下默认 512MB 循环日志会被写满、覆盖掉开头，这里放宽到 4GB；
+  # 超长抓包再配合更小的截断长度，避免文件过大。
+  $pktSize = if ($Seconds -ge 1200) { 512 } else { 1024 }
+  $startInfo = pktmon start --capture --comp nics --pkt-size $pktSize --file-size 4096 -f $etl 2>&1
   if ($LASTEXITCODE -ne 0) { throw ("pktmon 启动失败: " + ($startInfo | Out-String)) }
 
   $startTime = Get-Date
@@ -90,6 +93,8 @@ function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progre
   Start-Sleep -Milliseconds 600
   $conv = pktmon etl2pcap $etl --out $pcap 2>&1
   if (-not (Test-Path $pcap)) { throw ("pcapng 生成失败: " + ($conv | Out-String)) }
+  $etlMB = 0
+  if (Test-Path $etl) { $etlMB = [math]::Round((Get-Item $etl).Length / 1MB, 0) }
   Remove-Item $etl -Force -ErrorAction SilentlyContinue
 
   return [ordered]@{
@@ -97,6 +102,7 @@ function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progre
     conns   = (Split-Path $conns -Leaf)
     start   = $startTime.ToString('o')
     seconds = $Seconds
+    etlMB   = $etlMB
   }
 }
 
@@ -145,6 +151,10 @@ try {
   } else {
     $dir = $capDir
     $s = Invoke-Sample (Join-Path $capDir $base) 0.03 0.94 '抓包中'
+    $warnings = @()
+    if ($s.etlMB -ge 4000) {
+      $warnings += '抓包触发了 4GB 日志上限，开头部分可能已被覆盖；建议缩短时长或调小 --pkt-size。'
+    }
     $meta = [ordered]@{
       capture  = $s.capture
       conns    = $s.conns
@@ -154,6 +164,7 @@ try {
       localIps = @($ips)
       host     = $env:COMPUTERNAME
       size     = (Get-Item (Join-Path $capDir $s.capture)).Length
+      warnings = @($warnings)
     }
   }
 

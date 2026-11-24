@@ -349,6 +349,13 @@
   }
 
   /* ---------------- analysis ---------------- */
+  function protoName(n) { return n === 6 ? 'TCP' : n === 17 ? 'UDP' : 'IP' + n; }
+  function lookupPort(portMap, ip, port, proto) {
+    if (!portMap) return null;
+    var v = portMap.get(ip + ':' + port + ':' + protoName(proto));
+    if (v) return v;
+    return portMap.get(ip + ':' + port);
+  }
   function analyze(buffer, opts) {
     opts = opts || {};
     var b = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
@@ -426,7 +433,7 @@
       if (!f) {
         f = { proto: P.proto, lip: lip, lp: lp, rip: rip, rp: rp, up: 0, down: 0, pup: 0, pkts: 0, pid: 0, proc: '', domain: '', first: ts, last: ts };
         flows.set(fk, f);
-        var pm0 = portMap.get(lip + ':' + lp);
+        var pm0 = lookupPort(portMap, lip, lp, P.proto);
         if (pm0) { f.pid = pm0.pid; f.proc = pm0.proc; }
       }
       f.last = ts;
@@ -477,7 +484,7 @@
 
     flows.forEach(function (f) {
       if (!f.proc) {
-        var pm = portMap.get(f.lip + ':' + f.lp);
+        var pm = lookupPort(portMap, f.lip, f.lp, f.proto);
         if (pm) { f.pid = pm.pid; f.proc = pm.proc; }
         else f.proc = '未识别';
       }

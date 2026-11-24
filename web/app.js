@@ -15,6 +15,7 @@
     theme: 'light',
     initialTab: null,
     elapsed: 0,
+    serverWarnings: [],
     mode: 'single',
     capMode: 'single',
     capSec: 180,
@@ -93,11 +94,14 @@
     for (var i = 1; i < lines.length; i++) {
       if (!lines[i]) continue;
       var p = lines[i].split(',');
-      if (p.length < 7 || p[4] !== 'Established') continue;
+      if (p.length < 7) continue;
+      var proto = p[1];
+      if (proto !== 'TCP' && proto !== 'UDP') continue;
+      if (proto === 'TCP' && p[4] !== 'Established') continue;
       var loc = p[2], k = loc.lastIndexOf(':');
       if (k < 0) continue;
       var ip = loc.slice(0, k).replace(/^\[|\]$/g, ''), port = loc.slice(k + 1);
-      var key = ip + ':' + port;
+      var key = ip + ':' + port + ':' + proto;
       if (!map.has(key)) map.set(key, { pid: +p[5], proc: p[6] });
     }
     return map;
@@ -137,6 +141,7 @@
 
   function loadFile(file) {
     if (!file) return;
+    state.serverWarnings = [];
     if (!/\.(pcapng|pcap|cap)$/i.test(file.name)) { toast(t('toast.badFile')); return; }
     var fr = new FileReader();
     overlay(true, t('overlay.reading', { pct: 0, loaded: 0, total: Math.round(file.size / MB) }));
@@ -239,6 +244,7 @@
         return;
       }
       state.localIps = meta.localIps || [];
+      state.serverWarnings = meta.warnings || [];
       if (meta.mode === 'series' && meta.samples && meta.samples.length) {
         return loadSeries(meta);
       }
@@ -351,7 +357,7 @@
     $('localIpsLine').title = ips.join(', ');
     $('ipsInput').value = ips.join(', ');
 
-    var warns = (r.meta.warnings || []).slice();
+    var warns = (r.meta.warnings || []).slice().concat(state.serverWarnings || []);
     if (state.isDemo) warns.unshift(t('demo.warn'));
     $('warnBox').innerHTML = warns.map(function (w) { return '<div class="warnbox">' + esc(w) + '</div>'; }).join('');
 
@@ -863,6 +869,7 @@
         { id: 'peak_up', pass: true, data: { mbps: +(peakUp * 8 / 1e6).toFixed(2), bucket: 1 } }
       ]
     };
+    state.serverWarnings = [];
     state.result = res;
     state.isDemo = true;
     state.fileName = '';
