@@ -353,6 +353,15 @@
 
     <div id="tab-settings" class="hidden">
       <div class="panel">
+        <h3 data-i18n="settings.cap.title">抓包设置</h3>
+        <p class="muted small" data-i18n="settings.cap.desc">下面两个值会作为"开始抓包"弹窗的默认选项。</p>
+        <div class="row" style="margin-top:10px">
+          <span class="dim small" data-i18n="settings.cap.duration">默认时长</span>
+          <select class="lang" id="defDur"></select>
+          <span class="dim small" data-i18n="settings.cap.times">抽采次数</span>
+          <select class="lang" id="defTimes"></select>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
         <h3 data-i18n="settings.ips.title">本机 IP</h3>
         <p class="muted small" data-i18n="settings.ips.desc">用于区分上下行。留空则自动推断；可填多个，逗号分隔。</p>
         <input class="text" id="ipsInput" placeholder="192.168.1.10, 10.0.0.5">

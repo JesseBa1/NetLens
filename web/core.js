@@ -364,11 +364,17 @@
 
     var localIps = new Set(opts.localIps || []);
     var warnings = [];
+    var warningCodes = [];
     if (!localIps.size) {
       var det = detectLocalIps(b, fmt, opts.detectLimit || 40000);
       det.forEach(function (ip) { localIps.add(ip); });
-      if (det.length) warnings.push('未提供本机 IP，已自动推断：' + det.join(', '));
-      else warnings.push('未能推断本机 IP，请在设置里手动填写');
+      if (det.length) {
+        warnings.push('未提供本机 IP，已自动推断：' + det.join(', '));
+        warningCodes.push({ code: 'autoIp', ips: det });
+      } else {
+        warnings.push('未能推断本机 IP，请在设置里手动填写');
+        warningCodes.push({ code: 'noIp' });
+      }
     }
 
     var flows = new Map();
@@ -486,7 +492,7 @@
       if (!f.proc) {
         var pm = lookupPort(portMap, f.lip, f.lp, f.proto);
         if (pm) { f.pid = pm.pid; f.proc = pm.proc; }
-        else f.proc = '未识别';
+        else f.proc = '';
       }
       var pkey = f.proc + '(' + f.pid + ')';
       var p = procs.get(pkey);
@@ -593,6 +599,7 @@
       peakDownMbps: +(peakDown * 8 / bucketSize / 1e6).toFixed(2),
       localIps: Array.from(localIps),
       warnings: warnings,
+      warningCodes: warningCodes,
       distinctRemotes: remArr.length,
       dbg: dbg
     };
@@ -794,7 +801,7 @@
 
     var fan = null;
     ctx.procs.forEach(function (p) {
-      if (p.proc === '未识别') return;   // 无法归属进程时不参与 fan-out 判定，避免误报
+      if (!p.proc) return;   // 无法归属进程时不参与 fan-out 判定，避免误报
       if (p.up > 300 * 1024 && p.remotes >= 20) {
         if (!fan || p.up > fan.up) fan = p;
       }
@@ -820,7 +827,7 @@
     });
 
     var unknown = 0;
-    ctx.flows.forEach(function (f) { if (!f.proc || f.proc === '未识别') unknown += f.up; });
+    ctx.flows.forEach(function (f) { if (!f.proc) unknown += f.up; });
     out.push({
       id: 'unknown_proc',
       pass: unknown <= 1e6 || unknown <= ctx.bytesOut * 0.1,

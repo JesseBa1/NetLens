@@ -1046,6 +1046,242 @@
     Object.keys(extra2[l]).forEach(function (k) { dict[l][k] = extra2[l][k]; });
   });
 
+  var extra3 = {
+    zh: {
+      'proc.unknown': '未识别',
+      'warn.autoIp': '未提供本机 IP，已自动推断：{ips}',
+      'warn.noIp': '未能推断本机 IP，请在「设置」里手动填写',
+      'warn.truncated': '抓包达到 4 GB 日志上限，开头可能已被覆盖；建议缩短时长或调小 --pkt-size',
+      'status.preparing': '准备中…',
+      'status.starting': '启动抓包…',
+      'status.capturing': '已采样 {done}/{total} 秒',
+      'status.series': '第 {index}/{times} 次 · 已采样 {done}/{total} 秒',
+      'status.waiting': '等待下一次采样，约 {sec} 秒后',
+      'status.done': '完成',
+      'settings.cap.title': '抓包设置',
+      'settings.cap.desc': '下面两个值会作为「开始抓包」弹窗的默认选项，改完立即生效。',
+      'settings.cap.duration': '默认时长',
+      'settings.cap.times': '抽采次数',
+      'toast.reanalyzeSeries': '定时抽采结果暂不支持重新分析',
+      'toast.reanalyzed': '已按新的 IP 重新分析',
+      'export.packets': '{n} 个包',
+      'export.bytes': '字节',
+      'settings.about.body': 'NetLens 是完全离线的：解析都在本机浏览器里完成，不联网、不上传数据。<br>抓包用 Windows 自带的 pktmon，默认按 1024 字节截断；日志上限 4 GB，超过 20 分钟的抓包会自动降到 512 字节，写满时页面顶部会提示。<br>去重：pktmon 会在多个驱动层重复记录同一个包，按「五元组 + 序号 + 载荷指纹 + 3ms 窗口」合并。<br>进程归属：抓包同时记录 TCP 连接和 UDP 端点（本地端口 → PID），所以串流、PCDN 这类 UDP 流量也能对上程序。<br>统计单位为 IP 包字节（不含以太网帧头）；「载荷」为去掉 TCP/IP 头与纯 ACK 后的应用层字节。',
+      'help.html':
+        '<h2>三步用起来</h2><div class="steps">' +
+        '<div class="step"><div class="num">1</div><div class="txt"><b>抓包</b> —— 双击 <code>NetLens.cmd</code>，UAC 点「是」，在打开的页面里点「开始抓包」，选时长（1/3/10/30 分钟或自定义）或「定时抽采」。' +
+        '<small>不用装 Wireshark，用的是 Windows 自带的 pktmon；抓包期间正常上网即可。</small></div></div>' +
+        '<div class="step"><div class="num">2</div><div class="txt"><b>看结论</b> —— 顶部横幅直接告诉你有没有异常上传。' +
+        '<small>绿色 = 没发现；黄色 = 出现了值得注意的特征，点「异常判定」看详情。</small></div></div>' +
+        '<div class="step"><div class="num">3</div><div class="txt"><b>看细节</b> —— 「进程」看谁传得多，「连接明细」看每一条连接；定时抽采还多出「每次采样的结果」和「出现次数」。' +
+        '<small>可以导出成 Markdown / CSV 存档。</small></div></div></div>' +
+        '<h2>这些数字是什么意思</h2><ul>' +
+        '<li><b>上行 / 下行</b>：这台电脑发出 / 收到的数据量。家庭宽带通常下行远大于上行。</li>' +
+        '<li><b>应用层上行</b>：去掉 TCP 确认包和协议头之后，真正的「内容上传」。判断偷传要看这个。</li>' +
+        '<li><b>远端 IP</b>：连过去的服务器地址；「域名」列是它的名字（能解析出来才有）。</li>' +
+        '<li><b>上行峰值</b>：1 秒内最高上传速度，PCDN 偷跑往往长时间维持在几 Mbps 以上。</li>' +
+        '<li><b>采样次数 / 出现次数</b>：定时抽采里一共抓了几次，以及某个程序在其中几次上传过东西。出现次数越接近总次数越可疑。</li></ul>' +
+        '<h2>什么情况算「不正常」</h2><ul>' +
+        '<li>没在传文件、没开直播，但上行长期 &gt; 2 Mbps；</li>' +
+        '<li>某个陌生进程向几十个陌生 IP 同时上传（PCDN 的典型特征）；</li>' +
+        '<li>有公网 IP 主动连进来（说明有服务暴露在公网，或被扫描）；</li>' +
+        '<li>上行远大于下行，且持续存在。</li></ul>' +
+        '<h2>常见问题</h2><ul>' +
+        '<li><b>提示「拒绝访问」</b>：没有管理员权限。请从 <code>NetLens.cmd</code> 启动；只分析文件则不需要。</li>' +
+        '<li><b>抓到的流量很小</b>：抓包期间电脑基本空闲，正常。可以在怀疑的场景下再抓一次。</li>' +
+        '<li><b>看不到具体网站</b>：HTTPS 是加密的，走代理（如 Clash）就更看不到，只能看到代理节点 IP。</li>' +
+        '<li><b>能看到手机 / 路由器 / 全家设备吗</b>：不能。它只抓这台电脑的网卡；其他设备要看路由器后台、抓包或流量统计。</li>' +
+        '<li><b>数据会不会被上传</b>：不会，解析全在本机浏览器完成，工具不联网。</li></ul>'
+    },
+    en: {
+      'proc.unknown': 'Unidentified',
+      'warn.autoIp': 'No local IP was provided; guessed: {ips}',
+      'warn.noIp': 'Could not guess the local IP — set it manually in Settings',
+      'warn.truncated': 'Capture hit the 4 GB log limit, so the beginning may be missing; shorten the capture or lower --pkt-size',
+      'status.preparing': 'Preparing…',
+      'status.starting': 'Starting capture…',
+      'status.capturing': '{done}/{total}s captured',
+      'status.series': 'Sample {index}/{times} · {done}/{total}s captured',
+      'status.waiting': 'Waiting about {sec}s for the next sample',
+      'status.done': 'Done',
+      'settings.cap.title': 'Capture defaults',
+      'settings.cap.desc': 'These two values are the defaults in the “Start capture” dialog and apply immediately.',
+      'settings.cap.duration': 'Default duration',
+      'settings.cap.times': 'Sample count',
+      'toast.reanalyzeSeries': 'Re-analysis is not available for scheduled samples',
+      'toast.reanalyzed': 'Re-analyzed with the new IP list',
+      'export.packets': '{n} packets',
+      'export.bytes': 'Bytes',
+      'settings.about.body': 'NetLens is fully offline: parsing happens in your browser, nothing is uploaded.<br>It captures with the built-in Windows pktmon, truncated at 1024 bytes; the log limit is 4 GB, captures longer than 20 minutes automatically drop to 512 bytes, and the page warns you if the limit is hit.<br>De-duplication: pktmon records the same frame at several driver layers; NetLens merges them by 5-tuple + sequence + payload fingerprint + 3 ms window.<br>Process attribution also uses UDP endpoints (local port → PID), so streaming and PCDN traffic is matched to its program.<br>Bytes are IP packet bytes (Ethernet headers excluded); “payload” excludes TCP/IP headers and pure ACKs.',
+      'help.html':
+        '<h2>Three steps</h2><div class="steps">' +
+        '<div class="step"><div class="num">1</div><div class="txt"><b>Capture</b> — double-click <code>NetLens.cmd</code>, accept the UAC prompt, then press “Start capture” and pick a duration (1/3/10/30 min or custom) or “Scheduled samples”.' +
+        '<small>No Wireshark needed — it uses the built-in Windows pktmon. Just use the PC normally while it records.</small></div></div>' +
+        '<div class="step"><div class="num">2</div><div class="txt"><b>Read the verdict</b> — the banner at the top tells you whether anything looked wrong.' +
+        '<small>Green = nothing found; amber = a pattern appeared, open “Checks” for details.</small></div></div>' +
+        '<div class="step"><div class="num">3</div><div class="txt"><b>Drill down</b> — “Processes” shows who sent the most, “Connections” lists every flow; scheduled samples also add a per-sample table and an “appears in” column.' +
+        '<small>Export as Markdown / CSV / JSON.</small></div></div></div>' +
+        '<h2>What the numbers mean</h2><ul>' +
+        '<li><b>Upload / download</b>: total data sent and received. Home connections download far more than they upload.</li>' +
+        '<li><b>Payload upload</b>: real content after removing TCP ACKs and headers. This is what matters for hidden uploads.</li>' +
+        '<li><b>Remote IPs</b>: servers you talked to; the domain column shows their name when resolvable.</li>' +
+        '<li><b>Peak upload</b>: highest 1-second speed. PCDN seeding usually stays at several Mbps for a long time.</li>' +
+        '<li><b>Samples / appearances</b>: how many captures were taken, and in how many of them a program uploaded something. Closer to all samples = more suspicious.</li></ul>' +
+        '<h2>What counts as abnormal</h2><ul>' +
+        '<li>Nothing is being sent, yet upload stays above 2 Mbps;</li>' +
+        '<li>An unknown process uploads to dozens of unknown IPs (classic PCDN);</li>' +
+        '<li>Public IPs connect inbound (an exposed service or a scan);</li>' +
+        '<li>Upload is much larger than download and stays that way.</li></ul>' +
+        '<h2>FAQ</h2><ul>' +
+        '<li><b>“Access denied”</b>: no admin rights. Start from <code>NetLens.cmd</code>; file analysis needs no admin.</li>' +
+        '<li><b>Very little traffic captured</b>: the PC was mostly idle during the capture — normal. Capture again while the suspicious app runs.</li>' +
+        '<li><b>No website names</b>: HTTPS is encrypted, and a proxy (Clash etc.) hides destinations entirely; only the proxy IP is visible.</li>' +
+        '<li><b>Can it see my phone, router or the whole home?</b> No — it only captures this PC\u2019s NIC. Other devices need router-side stats, port mirroring or a router capture.</li>' +
+        '<li><b>Is my data uploaded?</b> No. Everything is parsed in your browser; the tool makes no network requests.</li></ul>'
+    },
+    ja: {
+      'proc.unknown': '不明',
+      'warn.autoIp': 'ローカル IP が未指定のため推定しました：{ips}',
+      'warn.noIp': 'ローカル IP を推定できません。「設定」で手動入力してください',
+      'warn.truncated': 'キャプチャが 4 GB の上限に達し、先頭が失われた可能性があります。時間を短くするか --pkt-size を小さくしてください',
+      'status.preparing': '準備中…',
+      'status.starting': 'キャプチャ開始…',
+      'status.capturing': '{done}/{total} 秒取得',
+      'status.series': '{index}/{times} 回目 · {done}/{total} 秒取得',
+      'status.waiting': '次のサンプルまで約 {sec} 秒',
+      'status.done': '完了',
+      'settings.cap.title': 'キャプチャ設定',
+      'settings.cap.desc': 'この 2 つが「キャプチャ開始」ダイアログの既定値になります。変更はすぐ反映されます。',
+      'settings.cap.duration': '既定の長さ',
+      'settings.cap.times': 'サンプル回数',
+      'toast.reanalyzeSeries': '定期サンプリングの再解析には未対応です',
+      'toast.reanalyzed': '新しい IP で再解析しました',
+      'export.packets': '{n} パケット',
+      'export.bytes': 'バイト',
+      'settings.about.body': 'NetLens は完全オフラインです。解析はブラウザ内で行われ、どこにも送信しません。<br>キャプチャは Windows 標準の pktmon を使用し、1024 バイトで切り詰めます。ログ上限は 4 GB、20 分を超えるキャプチャは自動的に 512 バイトになり、上限に達するとページ上部で警告します。<br>重複除去：同じパケットを複数のドライバ層が記録するため、5 タプル + シーケンス + ペイロード指紋 + 3ms で統合します。<br>プロセス判定には UDP エンドポイント（ローカルポート → PID）も使い、配信や PCDN の UDP 通信もプログラムに紐づけます。<br>バイト数は IP パケット長（Ethernet ヘッダー除く）。「実データ」は TCP/IP ヘッダーと純粋な ACK を除いた値です。',
+      'help.html':
+        '<h2>3 ステップ</h2><div class="steps">' +
+        '<div class="step"><div class="num">1</div><div class="txt"><b>キャプチャ</b> — <code>NetLens.cmd</code> をダブルクリックし UAC を許可、「キャプチャ開始」で長さ（1/3/10/30 分またはカスタム）か「定期サンプリング」を選びます。' +
+        '<small>Wireshark は不要。Windows 標準の pktmon を使います。取得中は普通に PC を使ってください。</small></div></div>' +
+        '<div class="step"><div class="num">2</div><div class="txt"><b>結論を見る</b> — 上部のバナーが異常の有無を教えてくれます。' +
+        '<small>緑 = 問題なし、黄 = 特徴あり。「チェック」で詳細を確認。</small></div></div>' +
+        '<div class="step"><div class="num">3</div><div class="txt"><b>詳細を見る</b> — 「プロセス」で送信量の多いアプリ、「接続一覧」で個別の通信。定期サンプリングでは「各サンプルの結果」と「出現回数」も表示されます。' +
+        '<small>Markdown / CSV / JSON で保存できます。</small></div></div></div>' +
+        '<h2>数字の意味</h2><ul>' +
+        '<li><b>上り / 下り</b>：送受信したデータ量。通常の回線は下りが圧倒的に多いです。</li>' +
+        '<li><b>アプリ層の上り</b>：TCP ACK とヘッダーを除いた実際の送信内容。不正送信の判断はこれで。</li>' +
+        '<li><b>リモート IP</b>：接続したサーバー。「ドメイン」列は判明した場合の名前。</li>' +
+        '<li><b>上りピーク</b>：1 秒間の最大速度。PCDN は数 Mbps を長時間維持する傾向があります。</li>' +
+        '<li><b>サンプル数 / 出現回数</b>：何回取得し、そのうち何回そのプログラムが送信したか。全回に近いほど疑わしいです。</li></ul>' +
+        '<h2>異常とみなす目安</h2><ul>' +
+        '<li>送信していないのに上りが 2 Mbps を超え続ける。</li>' +
+        '<li>不明なプロセスが多数の見知らぬ IP へ送信している（PCDN の典型）。</li>' +
+        '<li>公衆 IP から接続が来ている（ポート公開・スキャン）。</li>' +
+        '<li>上りが下りより大きく、それが続く。</li></ul>' +
+        '<h2>よくある質問</h2><ul>' +
+        '<li><b>「アクセス拒否」</b>：管理者権限がありません。<code>NetLens.cmd</code> から起動してください。</li>' +
+        '<li><b>通信量が少ない</b>：取得中 PC がほぼアイドルだっただけです。気になる操作中に再取得を。</li>' +
+        '<li><b>サイト名が出ない</b>：HTTPS は暗号化され、プロキシ（Clash 等）経由なら接続先も隠れます。</li>' +
+        '<li><b>スマホ・ルーター・家中の機器は見られる？</b> いいえ。この PC の NIC のみです。他の機器はルーター側の統計やポートミラーリングが必要です。</li>' +
+        '<li><b>データは送信される？</b> いいえ。解析はブラウザ内で完結します。</li></ul>'
+    },
+    ko: {
+      'proc.unknown': '미확인',
+      'warn.autoIp': '로컬 IP가 없어 추정했습니다: {ips}',
+      'warn.noIp': '로컬 IP를 추정하지 못했습니다. 설정에서 직접 입력하세요',
+      'warn.truncated': '캡처가 4GB 로그 한도에 도달해 앞부분이 사라졌을 수 있습니다. 시간을 줄이거나 --pkt-size를 낮추세요',
+      'status.preparing': '준비 중…',
+      'status.starting': '캡처 시작…',
+      'status.capturing': '{done}/{total}초 캡처',
+      'status.series': '{index}/{times}회 · {done}/{total}초 캡처',
+      'status.waiting': '다음 샘플까지 약 {sec}초',
+      'status.done': '완료',
+      'settings.cap.title': '캡처 기본값',
+      'settings.cap.desc': '아래 두 값이 “캡처 시작” 창의 기본값이며 즉시 적용됩니다.',
+      'settings.cap.duration': '기본 길이',
+      'settings.cap.times': '샘플 횟수',
+      'toast.reanalyzeSeries': '정기 샘플링 결과는 다시 분석할 수 없습니다',
+      'toast.reanalyzed': '새 IP로 다시 분석했습니다',
+      'export.packets': '{n}개 패킷',
+      'export.bytes': '바이트',
+      'settings.about.body': 'NetLens는 완전 오프라인입니다. 분석은 브라우저에서 수행되며 아무것도 전송하지 않습니다.<br>Windows 기본 pktmon으로 캡처하며 1024바이트에서 자릅니다. 로그 한도는 4GB이고, 20분 넘는 캡처는 자동으로 512바이트가 되며 한도에 닿으면 페이지 상단에 경고합니다.<br>중복 제거: 같은 패킷을 여러 드라이버 계층이 기록하므로 5-튜플 + 시퀀스 + 페이로드 지문 + 3ms로 병합합니다.<br>프로세스 판별에는 UDP 엔드포인트(로컬 포트 → PID)도 사용해 스트리밍/PCDN UDP 트래픽도 프로그램에 연결합니다.<br>바이트는 IP 패킷 길이(이더넷 헤더 제외), “실데이터”는 TCP/IP 헤더와 순수 ACK를 제외한 값입니다.',
+      'help.html':
+        '<h2>3단계 사용법</h2><div class="steps">' +
+        '<div class="step"><div class="num">1</div><div class="txt"><b>캡처</b> — <code>NetLens.cmd</code>를 더블클릭하고 UAC를 허용한 뒤 “캡처 시작”에서 길이(1/3/10/30분 또는 직접 입력)나 “정기 샘플링”을 고릅니다.' +
+        '<small>Wireshark가 필요 없습니다. Windows 기본 pktmon을 사용하며, 캡처 중에는 평소처럼 PC를 쓰면 됩니다.</small></div></div>' +
+        '<div class="step"><div class="num">2</div><div class="txt"><b>결론 확인</b> — 상단 배너가 이상 여부를 알려줍니다.' +
+        '<small>초록 = 문제 없음, 노랑 = 주의. “점검”에서 자세히 확인하세요.</small></div></div>' +
+        '<div class="step"><div class="num">3</div><div class="txt"><b>상세 보기</b> — “프로세스”에서 많이 보낸 앱, “연결 목록”에서 개별 연결. 정기 샘플링은 “샘플별 결과”와 “나타난 횟수”도 보여줍니다.' +
+        '<small>Markdown / CSV / JSON으로 저장할 수 있습니다.</small></div></div></div>' +
+        '<h2>숫자의 의미</h2><ul>' +
+        '<li><b>업로드 / 다운로드</b>: 보내고 받은 데이터량. 일반 회선은 다운로드가 훨씬 큽니다.</li>' +
+        '<li><b>애플리케이션 업로드</b>: TCP ACK와 헤더를 제외한 실제 전송량. 몰래 업로드 판단에 사용합니다.</li>' +
+        '<li><b>원격 IP</b>: 연결한 서버. “도메인” 열은 확인된 경우의 이름입니다.</li>' +
+        '<li><b>업로드 최고치</b>: 1초 최대 속도. PCDN은 수 Mbps를 오래 유지하는 경향이 있습니다.</li>' +
+        '<li><b>샘플 수 / 나타난 횟수</b>: 몇 번 캡처했고 그중 몇 번 해당 프로그램이 전송했는지. 전체에 가까울수록 의심스럽습니다.</li></ul>' +
+        '<h2>비정상 기준</h2><ul>' +
+        '<li>보내는 것이 없는데 업로드가 계속 2 Mbps 이상;</li>' +
+        '<li>모르는 프로세스가 수십 개의 낯선 IP로 전송(PCDN의 전형);</li>' +
+        '<li>공인 IP가 먼저 접속(포트 노출 또는 스캔);</li>' +
+        '<li>업로드가 다운로드보다 크고 지속됨.</li></ul>' +
+        '<h2>자주 묻는 질문</h2><ul>' +
+        '<li><b>“액세스 거부”</b>: 관리자 권한이 없습니다. <code>NetLens.cmd</code>로 실행하세요.</li>' +
+        '<li><b>트래픽이 적음</b>: 캡처 중 PC가 거의 유휴 상태였습니다. 의심되는 상황에서 다시 캡처하세요.</li>' +
+        '<li><b>사이트 이름이 안 보임</b>: HTTPS는 암호화되고 프록시(Clash 등)를 쓰면 대상도 숨겨집니다.</li>' +
+        '<li><b>휴대폰·공유기·집 전체 기기를 볼 수 있나요?</b> 아니요. 이 PC의 NIC만 캡처합니다. 다른 기기는 공유기 통계나 포트 미러링이 필요합니다.</li>' +
+        '<li><b>데이터가 전송되나요?</b> 아니요. 분석은 브라우저에서 끝납니다.</li></ul>'
+    },
+    pt: {
+      'proc.unknown': 'Não identificado',
+      'warn.autoIp': 'Nenhum IP local informado; estimado: {ips}',
+      'warn.noIp': 'Não foi possível estimar o IP local — defina manualmente em Configurações',
+      'warn.truncated': 'A captura atingiu o limite de 4 GB; o início pode ter sido perdido. Reduza a duração ou o --pkt-size',
+      'status.preparing': 'Preparando…',
+      'status.starting': 'Iniciando captura…',
+      'status.capturing': '{done}/{total}s capturados',
+      'status.series': 'Amostra {index}/{times} · {done}/{total}s capturados',
+      'status.waiting': 'Aguardando cerca de {sec}s para a próxima amostra',
+      'status.done': 'Concluído',
+      'settings.cap.title': 'Padrões de captura',
+      'settings.cap.desc': 'Estes dois valores são o padrão na janela “Iniciar captura” e valem imediatamente.',
+      'settings.cap.duration': 'Duração padrão',
+      'settings.cap.times': 'Nº de amostras',
+      'toast.reanalyzeSeries': 'A reanálise não está disponível para amostragem agendada',
+      'toast.reanalyzed': 'Reanalisado com a nova lista de IPs',
+      'export.packets': '{n} pacotes',
+      'export.bytes': 'Bytes',
+      'settings.about.body': 'O NetLens é totalmente offline: a análise ocorre no navegador, nada é enviado.<br>A captura usa o pktmon nativo do Windows, truncando em 1024 bytes; o limite de log é 4 GB, capturas acima de 20 minutos passam a 512 bytes automaticamente e a página avisa se o limite for atingido.<br>Deduplicação: o pktmon registra o mesmo quadro em várias camadas; o NetLens mescla por 5-tupla + sequência + impressão do payload + janela de 3 ms.<br>A atribuição de processo também usa endpoints UDP (porta local → PID), então streaming e PCDN em UDP aparecem no programa certo.<br>Os bytes são do pacote IP (sem cabeçalho Ethernet); “payload” exclui cabeçalhos TCP/IP e ACKs puros.',
+      'help.html':
+        '<h2>Três passos</h2><div class="steps">' +
+        '<div class="step"><div class="num">1</div><div class="txt"><b>Capturar</b> — clique duas vezes em <code>NetLens.cmd</code>, aceite o UAC e pressione “Iniciar captura” para escolher a duração (1/3/10/30 min ou personalizada) ou “Amostragem agendada”.' +
+        '<small>Não precisa de Wireshark: usa o pktmon nativo do Windows. Use o PC normalmente durante a captura.</small></div></div>' +
+        '<div class="step"><div class="num">2</div><div class="txt"><b>Ler o veredito</b> — o banner no topo diz se algo pareceu errado.' +
+        '<small>Verde = nada encontrado; âmbar = um padrão apareceu, abra “Verificações”.</small></div></div>' +
+        '<div class="step"><div class="num">3</div><div class="txt"><b>Detalhar</b> — “Processos” mostra quem enviou mais; “Conexões” lista cada fluxo. A amostragem agendada adiciona a tabela por amostra e a coluna “aparece em”.' +
+        '<small>Exporte em Markdown / CSV / JSON.</small></div></div></div>' +
+        '<h2>O que os números significam</h2><ul>' +
+        '<li><b>Upload / download</b>: total enviado e recebido. Conexões domésticas baixam muito mais.</li>' +
+        '<li><b>Upload de aplicação</b>: conteúdo real sem ACKs e cabeçalhos. É o que importa para upload escondido.</li>' +
+        '<li><b>IPs remotos</b>: servidores acessados; a coluna domínio mostra o nome quando possível.</li>' +
+        '<li><b>Pico de upload</b>: maior velocidade em 1s. PCDN costuma ficar em vários Mbps por muito tempo.</li>' +
+        '<li><b>Amostras / aparições</b>: quantas capturas foram feitas e em quantas o programa enviou algo. Perto de todas = mais suspeito.</li></ul>' +
+        '<h2>O que é anormal</h2><ul>' +
+        '<li>Nada sendo enviado, mas upload acima de 2 Mbps;</li>' +
+        '<li>Um processo desconhecido enviando para dezenas de IPs desconhecidos (PCDN clássico);</li>' +
+        '<li>IPs públicos conectando para dentro (serviço exposto ou varredura);</li>' +
+        '<li>Upload muito maior que download, de forma contínua.</li></ul>' +
+        '<h2>Perguntas frequentes</h2><ul>' +
+        '<li><b>“Acesso negado”</b>: sem administrador. Inicie pelo <code>NetLens.cmd</code>.</li>' +
+        '<li><b>Pouco tráfego capturado</b>: o PC ficou ocioso durante a captura — normal. Capture novamente com o app suspeito aberto.</li>' +
+        '<li><b>Não vejo nomes de sites</b>: HTTPS é criptografado e um proxy (Clash etc.) esconde o destino.</li>' +
+        '<li><b>Dá para ver celular, roteador ou a casa toda?</b> Não — apenas a placa deste PC. Outros aparelhos exigem estatísticas no roteador ou espelhamento de porta.</li>' +
+        '<li><b>Meus dados são enviados?</b> Não. Tudo é analisado no navegador.</li></ul>'
+    }
+  };
+  Object.keys(extra3).forEach(function (l) {
+    Object.keys(extra3[l]).forEach(function (k) { dict[l][k] = extra3[l][k]; });
+  });
+
   function t(lang, key, vars) {
     var d = dict[lang] || dict.en;
     var s = d[key];

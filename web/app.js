@@ -41,6 +41,20 @@
     return t('time.sec', { s: (+s).toFixed(1) });
   }
   function fmtMbps(v) { return (+v).toFixed(2) + ' Mbps'; }
+  function pname(p) { return p ? p : t('proc.unknown'); }
+  function statusText(st) {
+    if (!st || !st.code) return (st && st.message) || '';
+    var key = 'status.' + st.code;
+    var txt = t(key, st.params || {});
+    return txt === key ? (st.message || '') : txt;
+  }
+  function warningText(w) {
+    if (typeof w === 'string') return w;
+    if (!w || !w.code) return '';
+    var key = 'warn.' + w.code;
+    var txt = t(key, w);
+    return txt === key ? '' : txt;
+  }
 
   function toast(msg, ms) {
     var el = $('toast');
@@ -124,6 +138,7 @@
         var started = Date.now();
         var res = runAnalysis(buf, localIps, connsText);
         state.elapsed = (Date.now() - started) / 1000;
+        state.lastBuf = buf; state.lastConns = connsText; state.lastName = name;
         state.result = res;
         state.fileName = name;
         state.isDemo = false;
@@ -166,7 +181,7 @@
         toast(t('toast.captureFail', { msg: s.message || '' }), 6000);
         return;
       }
-      overlay(true, t('overlay.capture', { pct: Math.round((s.progress || 0) * 100), msg: s.message || '' }));
+      overlay(true, t('overlay.capture', { pct: Math.round((s.progress || 0) * 100), msg: statusText(s) }));
       setTimeout(pollStatus, 1500);
     }).catch(function () { setTimeout(pollStatus, 3000); });
   }
@@ -180,6 +195,12 @@
     updateDialog();
     $('capModal').classList.add('show');
   }
+  function saveCapPrefs() {
+    try {
+      localStorage.setItem('netlens.capSec', state.capSec);
+      localStorage.setItem('netlens.capTimes', state.capTimes);
+    } catch (e) { }
+  }
   function closeCaptureDialog() {
     $('capModal').classList.remove('show');
   }
@@ -188,6 +209,19 @@
     var totalSec = times * 60 + (times - 1) * 540;
     return Math.round(totalSec / 60);
   }
+  function fillDefSelects() {
+    var dur = $('defDur'), times = $('defTimes');
+    if (!dur || !times) return;
+    dur.innerHTML = [1, 3, 10, 30].map(function (m) {
+      return '<option value="' + (m * 60) + '">' + m + ' ' + esc(t('cap.minutes')) + '</option>';
+    }).join('');
+    times.innerHTML = [6, 12, 24].map(function (n) {
+      return '<option value="' + n + '">' + t('cap.times', { n: n }) + '</option>';
+    }).join('');
+    dur.value = String(state.capSec);
+    times.value = String(state.capTimes);
+  }
+
   function updateDialog() {
     $('modalLang').value = state.lang;
     $('modalTheme').textContent = state.theme === 'light' ? '☾' : '☀';
@@ -207,6 +241,8 @@
       if (small) small.textContent = t('cap.each', { s: 60, i: 10 });
     });
     $('customMin').value = Math.round(state.capSec / 60);
+    fillDefSelects();
+    if ($('defTimes')) $('defTimes').value = String(state.capTimes);
 
     $('capStart').textContent = state.capMode === 'series' ? t('cap.startSeries') : t('cap.startBtn');
     if (state.capMode === 'series') {
@@ -244,7 +280,7 @@
         return;
       }
       state.localIps = meta.localIps || [];
-      state.serverWarnings = meta.warnings || [];
+      state.serverWarnings = (meta.warningCodes && meta.warningCodes.length) ? meta.warningCodes : (meta.warnings || []);
       if (meta.mode === 'series' && meta.samples && meta.samples.length) {
         return loadSeries(meta);
       }
@@ -357,7 +393,9 @@
     $('localIpsLine').title = ips.join(', ');
     $('ipsInput').value = ips.join(', ');
 
-    var warns = (r.meta.warnings || []).slice().concat(state.serverWarnings || []);
+    var codes = (r.meta.warningCodes || []).concat(state.serverWarnings || []);
+    var warns = codes.map(warningText).filter(Boolean);
+    if (!warns.length) warns = (r.meta.warnings || []).slice();
     if (state.isDemo) warns.unshift(t('demo.warn'));
     $('warnBox').innerHTML = warns.map(function (w) { return '<div class="warnbox">' + esc(w) + '</div>'; }).join('');
 
@@ -441,7 +479,7 @@
       '<thead><tr><th>' + esc(t('th.process')) + '</th><th>' + esc(t('th.remote')) +
       '</th><th class="num">' + esc(t('th.up')) + '</th><th class="num">' + esc(t('th.down')) + '</th></tr></thead><tbody>' +
       ups.map(function (f) {
-        return '<tr><td>' + esc(f.proc) + '</td><td class="mono small">' + esc(f.server) +
+        return '<tr><td>' + esc(pname(f.proc)) + '</td><td class="mono small">' + esc(f.server) +
           (f.domain ? '<div class="dim small">' + esc(f.domain) + '</div>' : '') + '</td>' +
           '<td class="num" style="color:var(--warn)">' + fmtBytes(f.up) + '</td><td class="num">' + fmtBytes(f.down) + '</td></tr>';
       }).join('') + '</tbody>';
@@ -459,7 +497,7 @@
     switch (c.id) {
       case 'up_rate': return fmtMbps(d.upMbps || 0);
       case 'max_flow_up': return d.flow ? fmtBytes(d.flow.up) : t('check.none');
-      case 'fanout': return d.proc ? t('check.fanout.value', { proc: d.proc, n: d.remotes }) : t('check.none');
+      case 'fanout': return d.proc ? t('check.fanout.value', { proc: pname(d.proc), n: d.remotes }) : t('check.none');
       case 'inbound': return t('check.inbound.value', { n: d.count || 0 });
       case 'udp_fanout': return t('check.udp_fanout.value', { n: d.count || 0 });
       case 'unknown_proc': return t('check.unknown_proc.value', { size: fmtBytes(d.bytes || 0) });
@@ -474,11 +512,11 @@
         return t('check.up_rate.detail', { up: (d.upMbps || 0).toFixed(2), down: (d.downMbps || 0).toFixed(2) });
       case 'max_flow_up':
         return d.flow ? t('check.max_flow.detail', {
-          proc: d.flow.proc, server: d.flow.server,
+          proc: pname(d.flow.proc), server: d.flow.server,
           domain: d.flow.domain ? ' (' + d.flow.domain + ')' : ''
         }) : '';
       case 'fanout':
-        return d.proc ? t('check.fanout.detail', { proc: d.proc, up: fmtBytes(d.up), n: d.remotes }) : '';
+        return d.proc ? t('check.fanout.detail', { proc: pname(d.proc), up: fmtBytes(d.up), n: d.remotes }) : '';
       case 'inbound':
         return (d.peers && d.peers.length)
           ? d.peers.map(function (p) { return p.src + ':' + p.port; }).join(', ')
@@ -575,7 +613,7 @@
       { label: t('th.up'), num: true, value: function (x) { return '<span style="color:var(--warn)">' + fmtBytes(x.up) + '</span>'; } },
       { label: t('th.down'), num: true, value: function (x) { return fmtBytes(x.down); } },
       { label: t('th.packets'), num: true, value: function (x) { return fmtNum(x.pkts); } },
-      { label: t('th.process'), value: function (x) { return esc(x.proc) + ' <span class="dim small">#' + x.pid + '</span>'; } },
+      { label: t('th.process'), value: function (x) { return esc(pname(x.proc)) + ' <span class="dim small">#' + x.pid + '</span>'; } },
       { label: t('th.domain'), value: function (x) { return '<span class="small muted">' + esc(x.domain || '-') + '</span>'; } }
     ], rows);
   }
@@ -753,12 +791,12 @@
     L.push('# ' + t('export.reportTitle'));
     L.push('');
     L.push('- ' + t('export.file') + ': `' + (state.isDemo ? t('demo.name') : state.fileName) + '`');
-    L.push('- ' + t('export.duration') + ': ' + fmtDur(m.duration) + ' (' + fmtNum(m.packets) + ' packets)');
+    L.push('- ' + t('export.duration') + ': ' + fmtDur(m.duration) + ' (' + t('export.packets', { n: fmtNum(m.packets) }) + ')');
     L.push('- ' + t('export.localIps') + ': ' + m.localIps.join(', '));
     L.push('');
     L.push('## ' + t('export.total'));
     L.push('');
-    L.push('| ' + t('export.dir') + ' | Bytes | ' + t('export.mbps') + ' |');
+    L.push('| ' + t('export.dir') + ' | ' + t('export.bytes') + ' | ' + t('export.mbps') + ' |');
     L.push('|---|---|---|');
     L.push('| ' + t('th.up') + ' | ' + fmtBytes(m.bytesOut) + ' | ' + fmtMbps(m.upMbps) + ' |');
     L.push('| ' + t('th.down') + ' | ' + fmtBytes(m.bytesIn) + ' | ' + fmtMbps(m.downMbps) + ' |');
@@ -778,7 +816,7 @@
     L.push('| ' + t('th.process') + ' | ' + t('th.up') + ' | ' + t('th.payload') + ' | ' + t('th.down') + ' | ' + t('th.remotes') + ' |');
     L.push('|---|---|---|---|---|');
     r.procs.slice(0, 20).forEach(function (p) {
-      L.push('| ' + p.proc + ' (' + p.pid + ') | ' + fmtBytes(p.up) + ' | ' + fmtBytes(p.payloadUp) + ' | ' +
+      L.push('| ' + pname(p.proc) + ' (' + p.pid + ') | ' + fmtBytes(p.up) + ' | ' + fmtBytes(p.payloadUp) + ' | ' +
         fmtBytes(p.down) + ' | ' + p.remotes + ' |');
     });
     L.push('');
@@ -787,7 +825,7 @@
     L.push('| ' + t('th.process') + ' | ' + t('th.remote') + ' | ' + t('th.up') + ' | ' + t('th.down') + ' | ' + t('th.domain') + ' |');
     L.push('|---|---|---|---|---|');
     r.flows.slice().sort(function (a, b) { return b.up - a.up; }).slice(0, 15).forEach(function (f) {
-      L.push('| ' + f.proc + ' | ' + f.server + ' | ' + fmtBytes(f.up) + ' | ' + fmtBytes(f.down) + ' | ' + (f.domain || '-') + ' |');
+      L.push('| ' + pname(f.proc) + ' | ' + f.server + ' | ' + fmtBytes(f.up) + ' | ' + fmtBytes(f.down) + ' | ' + (f.domain || '-') + ' |');
     });
     L.push('');
     L.push('> ' + t('app.title'));
@@ -885,7 +923,14 @@
     var params = new URLSearchParams(location.search);
 
     var savedLang = null, savedTheme = null;
-    try { savedLang = localStorage.getItem('netlens.lang'); savedTheme = localStorage.getItem('netlens.theme'); } catch (e) { }
+    try {
+      savedLang = localStorage.getItem('netlens.lang');
+      savedTheme = localStorage.getItem('netlens.theme');
+      var cs = parseInt(localStorage.getItem('netlens.capSec'), 10);
+      var ct = parseInt(localStorage.getItem('netlens.capTimes'), 10);
+      if (cs >= 5) state.capSec = cs;
+      if (ct >= 1) state.capTimes = ct;
+    } catch (e) { }
     var urlLang = params.get('lang'), urlTheme = params.get('theme');
     state.lang = (urlLang && I18N.langs.indexOf(urlLang) >= 0) ? urlLang
       : ((savedLang && I18N.langs.indexOf(savedLang) >= 0) ? savedLang : I18N.detect());
@@ -938,16 +983,18 @@
     $('durOpts').addEventListener('click', function (e) {
       var b = e.target.closest('.opt'); if (!b) return;
       state.capSec = +b.getAttribute('data-sec');
+      saveCapPrefs();
       updateDialog();
     });
     $('timesOpts').addEventListener('click', function (e) {
       var b = e.target.closest('.opt'); if (!b) return;
       state.capTimes = +b.getAttribute('data-times');
+      saveCapPrefs();
       updateDialog();
     });
     $('customMin').addEventListener('input', function (e) {
       var v = parseInt(e.target.value, 10);
-      if (v >= 1 && v <= 120) { state.capSec = v * 60; updateDialog(); }
+      if (v >= 1 && v <= 120) { state.capSec = v * 60; saveCapPrefs(); updateDialog(); }
     });
     $('capStart').onclick = function () { startCapture(); };
     $('capCancel').onclick = closeCaptureDialog;
@@ -956,6 +1003,8 @@
       if (e.target === $('capModal')) closeCaptureDialog();
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCaptureDialog(); });
+    $('defDur').onchange = function (e) { state.capSec = +e.target.value; saveCapPrefs(); updateDialog(); };
+    $('defTimes').onchange = function (e) { state.capTimes = +e.target.value; saveCapPrefs(); updateDialog(); };
     $('modalLang').onchange = function (e) { setLang(e.target.value); };
     $('modalTheme').onclick = function () { setTheme(state.theme === 'light' ? 'dark' : 'light'); };
 
@@ -988,7 +1037,25 @@
 
     $('btnReanalyze').onclick = function () {
       if (!state.result) return;
-      toast(t('toast.reanalyze'));
+      if (state.mode === 'series') { toast(t('toast.reanalyzeSeries')); return; }
+      if (!state.lastBuf) { toast(t('toast.reanalyze')); return; }
+      var ips = $('ipsInput').value.split(/[,;\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      overlay(true, t('overlay.analyzing', { pct: 0 }));
+      setTimeout(function () {
+        try {
+          var started = Date.now();
+          var res = runAnalysis(state.lastBuf, ips, state.lastConns || '');
+          state.elapsed = (Date.now() - started) / 1000;
+          state.result = res;
+          state.localIps = ips.length ? ips : res.meta.localIps;
+          render();
+          overlay(false);
+          toast(t('toast.reanalyzed'));
+        } catch (e) {
+          overlay(false);
+          toast(t('toast.parseFail', { msg: e.message }), 5000);
+        }
+      }, 30);
     };
 
     window.addEventListener('resize', function () { if (state.result) renderChart(); });

@@ -15,14 +15,16 @@ $statusPath = Join-Path $capDir 'status.json'
 $stamp = if ($Tag) { $Tag } else { Get-Date -Format 'yyyyMMdd_HHmmss' }
 $base = "cap_$stamp"
 
-function Set-Status($phase, $progress, $message) {
+function Set-Status($phase, $progress, $message, $code = '', $params = $null) {
   $o = [ordered]@{
     phase    = $phase
     progress = [math]::Round($progress, 3)
     message  = $message
     updated  = (Get-Date).ToString('o')
   }
-  $o | ConvertTo-Json -Compress | Set-Content -Path $statusPath -Encoding UTF8
+  if ($code) { $o['code'] = $code }
+  if ($params) { $o['params'] = $params }
+  $o | ConvertTo-Json -Depth 4 -Compress | Set-Content -Path $statusPath -Encoding UTF8
 }
 
 $procCache = @{}
@@ -44,7 +46,7 @@ function Get-LocalIps {
   }
 }
 
-function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progressSpan, [string]$label) {
+function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progressSpan, [string]$label, [string]$statusCode = 'capturing', [hashtable]$statusParams = $null) {
   $etl = "$fileBase.etl"
   $pcap = "$fileBase.pcapng"
   $conns = "$fileBase.conns.csv"
@@ -82,7 +84,9 @@ function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progre
     if ($sw.Elapsed.TotalSeconds - $lastStatus -ge 2) {
       $lastStatus = $sw.Elapsed.TotalSeconds
       $p = $progressFrom + $progressSpan * $frac
-      Set-Status 'capturing' $p ('{0} · 已采样 {1:N0}/{2} 秒' -f $label, $sw.Elapsed.TotalSeconds, $Seconds)
+      $sp = @{ done = [int]$sw.Elapsed.TotalSeconds; total = $Seconds }
+      if ($statusParams) { foreach ($k in $statusParams.Keys) { $sp[$k] = $statusParams[$k] } }
+      Set-Status 'capturing' $p ('{0} · 已采样 {1:N0}/{2} 秒' -f $label, $sw.Elapsed.TotalSeconds, $Seconds) $statusCode $sp
     }
     Start-Sleep -Milliseconds 850
   }
@@ -107,7 +111,7 @@ function Invoke-Sample([string]$fileBase, [double]$progressFrom, [double]$progre
 }
 
 try {
-  Set-Status 'preparing' 0.02 '清理旧的抓包会话'
+  Set-Status 'preparing' 0.02 '清理旧的抓包会话' 'preparing'
   try { pktmon stop 2>&1 | Out-Null } catch { }
   try { pktmon filter remove 2>&1 | Out-Null } catch { }
 
@@ -117,13 +121,13 @@ try {
   if ($Series -eq $true) {
     $dir = Join-Path $capDir "series_$stamp"
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    Set-Status 'starting' 0.03 ('开始定时抽采：共 {0} 次，每次 {1} 秒' -f $Times, $Seconds)
+    Set-Status 'starting' 0.03 ('开始定时抽采：共 {0} 次，每次 {1} 秒' -f $Times, $Seconds) 'starting' @{ times = $Times; seconds = $Seconds }
     $samples = @()
     for ($i = 1; $i -le $Times; $i++) {
       $from = 0.03 + 0.94 * (($i - 1) / $Times)
       $span = 0.94 / $Times
       $label = ('第 {0}/{1} 次' -f $i, $Times)
-      $s = Invoke-Sample (Join-Path $dir ('sample_{0:D2}' -f $i)) $from $span $label
+      $s = Invoke-Sample (Join-Path $dir ('sample_{0:D2}' -f $i)) $from $span $label 'series' @{ index = $i; times = $Times }
       $s['index'] = $i
       $samples += $s
       if ($i -lt $Times) {
@@ -131,7 +135,7 @@ try {
         $until = (Get-Date).AddSeconds($wait)
         while ((Get-Date) -lt $until) {
           $left = [math]::Max(0, [int]($until - (Get-Date)).TotalSeconds)
-          Set-Status 'capturing' (0.03 + 0.94 * ($i / $Times)) ('等待下一次采样，约 {0} 秒后' -f $left)
+          Set-Status 'capturing' (0.03 + 0.94 * ($i / $Times)) ('等待下一次采样，约 {0} 秒后' -f $left) 'waiting' @{ sec = $left }
           Start-Sleep -Seconds 2
         }
       }
@@ -150,7 +154,7 @@ try {
     }
   } else {
     $dir = $capDir
-    $s = Invoke-Sample (Join-Path $capDir $base) 0.03 0.94 '抓包中'
+    $s = Invoke-Sample (Join-Path $capDir $base) 0.03 0.94 '抓包中' 'capturing'
     $warnings = @()
     if ($s.etlMB -ge 4000) {
       $warnings += '抓包触发了 4GB 日志上限，开头部分可能已被覆盖；建议缩短时长或调小 --pkt-size。'
@@ -166,11 +170,13 @@ try {
       size     = (Get-Item (Join-Path $capDir $s.capture)).Length
       warnings = @($warnings)
     }
+    $meta['warningCodes'] = @()
+    if ($s.etlMB -ge 4000) { $meta.warningCodes += @{ code = 'truncated' } }
   }
 
   $metaPath = Join-Path $capDir "$base.json"
   $meta | ConvertTo-Json -Depth 6 | Set-Content -Path $metaPath -Encoding UTF8
-  Set-Status 'done' 1.0 '完成'
+  Set-Status 'done' 1.0 '完成' 'done'
   if ($Series) {
     Write-Host ('定时抽采完成：' + $Times + ' 次采样，目录 captures\' + $meta.series) -ForegroundColor Green
   } else {
@@ -178,7 +184,7 @@ try {
   }
 }
 catch {
-  Set-Status 'error' 1.0 $_.Exception.Message
+  Set-Status 'error' 1.0 $_.Exception.Message 'error' @{ msg = $_.Exception.Message }
   Write-Host ('抓包失败: ' + $_.Exception.Message) -ForegroundColor Red
   throw
 }
