@@ -99,7 +99,7 @@
     fetch('/api/latest').then(function (r) { return r.json(); }).then(function (meta) {
       if (!meta || !meta.capture) {
         overlay(false);
-        toast('本地服务里还没有抓包文件，请拖入 pcap');
+        if (!state.result) toast('还没有抓包文件，点上面的「开始抓包」');
         return;
       }
       state.localIps = meta.localIps || [];
@@ -149,6 +149,7 @@
     wb.innerHTML = (r.meta.warnings || []).map(function (w) { return '<div class="warnbox">' + esc(w) + '</div>'; }).join('');
 
     renderCards();
+    renderVerdict();
     renderChart();
     renderTopTables();
     renderChecks();
@@ -163,20 +164,43 @@
     }
   }
 
+  function renderVerdict() {
+    var failed = state.result.checks.filter(function (c) { return !c.pass; });
+    var el = $('verdict');
+    var icon = el.querySelector('.icon'), t = el.querySelector('.t'), d = el.querySelector('.d');
+    if (!failed.length) {
+      el.className = 'verdict ok';
+      icon.textContent = '✓';
+      t.textContent = '没发现异常上传行为';
+      d.textContent = '上下行比例、单条连接上传量、对端数量、入站连接都在正常范围内。想核对细节可以点「异常判定」。';
+    } else if (failed.length === 1) {
+      el.className = 'verdict warn';
+      icon.textContent = '!';
+      t.textContent = '发现 1 项值得注意：' + failed[0].label;
+      d.textContent = failed[0].value + ' —— 点「异常判定」看它在说什么。如果你本来就装了远程控制/串流软件，这项可能是正常现象。';
+    } else {
+      el.className = 'verdict bad';
+      icon.textContent = '!';
+      t.textContent = '发现 ' + failed.length + ' 项值得注意';
+      d.textContent = failed.map(function (c) { return c.label; }).join('、') + '。点「异常判定」逐项看。';
+    }
+  }
+
   function renderCards() {
     var m = state.result.meta;
     var ratio = m.bytesIn ? (m.bytesOut / m.bytesIn * 100) : 100;
     var cards = [
-      { k: '上行（IP 字节）', v: fmtBytes(m.bytesOut), s: m.upMbps.toFixed(2) + ' Mbps 平均', c: 'up' },
-      { k: '下行（IP 字节）', v: fmtBytes(m.bytesIn), s: m.downMbps.toFixed(2) + ' Mbps 平均', c: 'down' },
-      { k: '上行 / 下行', v: ratio.toFixed(1) + '%', s: '1 : ' + (ratio ? (100 / ratio).toFixed(0) : '-'), c: (ratio > 50 && m.upMbps > 2) ? 'bad' : 'ok' },
-      { k: '应用层上行', v: fmtBytes(m.payloadOut), s: '去掉 ACK 与协议头' },
-      { k: '上行峰值（1s）', v: m.peakUpMbps + ' Mbps', s: '1 秒峰值，下行 ' + m.peakDownMbps + ' Mbps', c: m.peakUpMbps > 10 ? 'bad' : 'ok' },
-      { k: '远端 IP', v: fmtNum(m.distinctRemotes), s: '去重后 ' + fmtNum(m.packets) + ' 包', c: '' },
-      { k: '时长', v: fmtDur(m.duration), s: '重复包 ' + fmtNum(m.dupPackets), c: '' }
+      { k: '上行', v: fmtBytes(m.bytesOut), s: '这台电脑发出去的数据 · ' + m.upMbps.toFixed(2) + ' Mbps', c: 'up', tip: '本机发出的全部 IP 包，等于"上传总量"。' },
+      { k: '下行', v: fmtBytes(m.bytesIn), s: '收到的数据 · ' + m.downMbps.toFixed(2) + ' Mbps', c: 'down', tip: '本机收到的全部 IP 包，等于"下载总量"。' },
+      { k: '上行 / 下行', v: ratio.toFixed(1) + '%', s: '1 : ' + (ratio ? (100 / ratio).toFixed(0) : '-'), c: (ratio > 50 && m.upMbps > 2) ? 'bad' : 'ok', tip: '正常上网通常小于 10%。长期超过 50% 说明你在持续上传。' },
+      { k: '应用层上行', v: fmtBytes(m.payloadOut), s: '去掉 ACK 与协议头的"真上传"', tip: '上传大文件、直播推流才会显著变大；纯 TCP 确认包不算。' },
+      { k: '上行峰值（1s）', v: m.peakUpMbps + ' Mbps', s: '1 秒最高，下行 ' + m.peakDownMbps + ' Mbps', c: m.peakUpMbps > 10 ? 'bad' : 'ok', tip: '任意 1 秒内的最高上传速度。' },
+      { k: '远端 IP', v: fmtNum(m.distinctRemotes), s: '去重后 ' + fmtNum(m.packets) + ' 个包', c: '', tip: '这 3 分钟里连过多少个不同的服务器地址。' },
+      { k: '时长', v: fmtDur(m.duration), s: '重复包已合并 ' + fmtNum(m.dupPackets), c: '', tip: '抓包覆盖的时间范围；重复包是抓包机制导致的，已自动去重。' }
     ];
     $('summaryCards').innerHTML = cards.map(function (x) {
-      return '<div class="card"><div class="k">' + x.k + '</div><div class="v ' + (x.c || '') + '">' + x.v +
+      return '<div class="card"><div class="k">' + x.k + (x.tip ? '<span class="i" title="' + esc(x.tip) + '">?</span>' : '') +
+        '</div><div class="v ' + (x.c || '') + '">' + x.v +
         '</div><div class="s">' + esc(x.s) + '</div></div>';
     }).join('');
   }
@@ -200,6 +224,16 @@
       }).join('') + '</tbody>';
   }
 
+  var CHECK_PLAIN = {
+    up_rate: '你整体上传得有多快。正常刷网页/看视频时，上传通常只有下载的几十分之一。',
+    max_flow_up: '有没有哪一条连接传了特别多东西，比如在后台传大文件、备份照片。',
+    fanout: '有没有同时向很多陌生 IP 发数据 —— 这是 PCDN 最典型的特征。',
+    inbound: '有没有公网上的机器主动连进来。有的话说明你有端口暴露在公网，或者正在被扫描。',
+    udp_fanout: 'UDP 是否在向很多 IP 发包。P2P、PCDN 常用这种方式绕开限制。',
+    unknown_proc: '有多少上传流量没能对应到具体程序（越少越好）。',
+    peak_up: '瞬间最高上传速度，突发传大文件时会冲高。'
+  };
+
   function renderChecks() {
     var cs = state.result.checks;
     $('checkCards').innerHTML = cs.map(function (c) {
@@ -207,7 +241,9 @@
       return '<div class="check ' + cls + '"><div class="t"><b>' + esc(c.label) + '</b>' +
         '<span class="pill ' + cls + '">' + (c.pass ? '正常' : '需注意') + '</span></div>' +
         '<div class="val">' + esc(c.value) + '</div>' +
-        '<div class="why">' + esc(c.detail || '') + '<br><span class="dim">阈值：' + esc(c.threshold) + '</span></div></div>';
+        '<div class="why">' + esc(CHECK_PLAIN[c.id] || '') + '</div>' +
+        '<div class="why">' + esc(c.detail || '') + '</div>' +
+        '<div class="thr">判定阈值：' + esc(c.threshold) + '</div></div>';
     }).join('');
   }
 
@@ -489,12 +525,14 @@
 
   /* ---------- events ---------- */
   function init() {
-    $('btnPick').onclick = function (e) { e.stopPropagation(); $('fileInput').click(); };
+    var served = (location.protocol === 'http:' || location.protocol === 'https:');
+    var pick = function (e) { if (e) e.stopPropagation(); $('fileInput').click(); };
+    $('btnPick2').onclick = pick;
     $('btnOpen').onclick = function () { $('fileInput').click(); };
     $('fileInput').onchange = function (e) { loadFile(e.target.files[0]); e.target.value = ''; };
-    $('btnDemo').onclick = function (e) { e.stopPropagation(); demo(); };
+    $('btnDemo2').onclick = function (e) { e.stopPropagation(); demo(); };
 
-    var dz = $('dropZone');
+    var dz = $('droparea');
     dz.onclick = function () { $('fileInput').click(); };
     ['dragenter', 'dragover'].forEach(function (ev) {
       dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('over'); });
@@ -511,11 +549,22 @@
       if (!$('result').classList.contains('hidden') && e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
     });
 
+    // 抓包按钮
+    if (served) {
+      $('btnRecapture').style.display = '';
+      $('btnRecapture').onclick = function () { startCapture(); };
+      $('btnStartCapture').onclick = function (e) { e.stopPropagation(); startCapture(); };
+    } else {
+      $('btnStartCapture').disabled = true;
+      $('btnStartCapture').textContent = '需用 NetLens.cmd 启动';
+      $('captureHint').classList.remove('hidden');
+    }
+
     $('tabs').addEventListener('click', function (e) {
       var tab = e.target.closest('.tab'); if (!tab) return;
       var name = tab.dataset.tab;
       Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) { t.classList.toggle('active', t === tab); });
-      ['overview', 'checks', 'procs', 'remotes', 'domains', 'flows', 'settings'].forEach(function (n) {
+      ['overview', 'checks', 'procs', 'remotes', 'domains', 'flows', 'help', 'settings'].forEach(function (n) {
         $('tab-' + n).classList.toggle('hidden', n !== name);
       });
       if (name === 'overview') renderChart();
@@ -537,29 +586,30 @@
     $('flowFilter').addEventListener('input', function (e) { if (state.result) renderFlows(e.target.value); });
 
     $('btnReanalyze').onclick = function () {
-      var ips = $('ipsInput').value.split(/[,;\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
       if (!state.result) return;
-      toast('仅对已载入的文件生效，请重新拖入文件以应用新 IP');
+      toast('请重新拖入文件以应用新的 IP 设置');
     };
 
     window.addEventListener('resize', function () { if (state.result) renderChart(); });
 
     var params = new URLSearchParams(location.search);
     state.initialTab = params.get('tab');
-    if (location.protocol === 'http:' || location.protocol === 'https:') {
-      var rb = $('btnRecapture');
-      rb.style.display = '';
-      rb.onclick = function () {
-        if (!confirm('将重新抓包（默认 180 秒，需要管理员权限），确定继续？')) return;
-        fetch('/api/capture?seconds=180').then(function (r) { return r.json(); }).then(function (j) {
-          if (!j.ok) { toast(j.message || '无法启动抓包'); return; }
-          pollStatus();
-        });
-      };
-    }
     if (params.get('demo') === '1') demo();
-    else if (location.protocol === 'http:' || location.protocol === 'https:') loadFromServer();
+    else if (served) loadFromServer();
   }
+
+  function startCapture() {
+    if (!(location.protocol === 'http:' || location.protocol === 'https:')) {
+      toast('直接打开网页时无法抓包，请双击 NetLens.cmd 启动');
+      return;
+    }
+    if (!confirm('将抓取 180 秒网络流量（需要管理员权限）。\n\n抓包期间请正常使用电脑（刷网页、看视频都可以），不要关闭黑色窗口。\n\n开始吗？')) return;
+    fetch('/api/capture?seconds=180').then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) { toast(j.message || '无法启动抓包', 5000); return; }
+      pollStatus();
+    }).catch(function () { toast('无法连接本地服务，请用 NetLens.cmd 启动', 5000); });
+  }
+
 
   document.addEventListener('DOMContentLoaded', init);
 })();

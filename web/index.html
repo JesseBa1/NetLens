@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NetLens · 本地流量分析</title>
+<title>NetLens · 看看你的电脑在偷偷上传什么</title>
 <style>
   :root{
     --bg:#0b0f17; --bg2:#0f1520; --card:#141b28; --card2:#182132;
@@ -15,6 +15,7 @@
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
     font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;font-size:14px}
   a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
   button{font-family:inherit}
   header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;
     padding:12px 22px;background:rgba(11,15,23,.86);backdrop-filter:blur(10px);
@@ -30,18 +31,42 @@
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#04101f;font-weight:600}
   .btn.primary:hover{filter:brightness(1.08)}
   .btn:disabled{opacity:.45;cursor:not-allowed}
-  main{padding:20px 22px 60px;max-width:1500px;margin:0 auto}
-  .drop{border:1.5px dashed #2b3a55;border-radius:16px;padding:56px 24px;text-align:center;
-    background:radial-gradient(1200px 300px at 50% -10%,rgba(79,140,255,.13),transparent 70%);
-    transition:.2s;cursor:pointer}
-  .drop.over{border-color:var(--accent);background:rgba(79,140,255,.08)}
-  .drop h2{margin:14px 0 8px;font-size:20px}
-  .drop p{margin:6px 0;color:var(--muted);font-size:13px;line-height:1.7}
-  .drop .hint{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .btn.big{padding:11px 22px;font-size:15px;border-radius:10px}
+  main{padding:22px;max-width:1500px;margin:0 auto}
+
+  /* ---------- welcome ---------- */
+  .hero{text-align:center;padding:34px 16px 10px}
+  .hero h1{font-size:28px;margin:0 0 10px;letter-spacing:.5px}
+  .hero p{color:var(--muted);margin:6px 0;font-size:15px;line-height:1.8}
+  .starters{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;
+    max-width:900px;margin:26px auto 0}
+  .starter{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;
+    text-align:left;display:flex;flex-direction:column;gap:6px}
+  .starter .n{color:var(--accent);font-weight:700;font-size:12px;letter-spacing:1px}
+  .starter b{font-size:15px}
+  .starter p{color:var(--dim);font-size:12.5px;margin:0;line-height:1.7;flex:1}
+  .starter .btn{margin-top:10px;text-align:center}
+  .dropzone{border:1.5px dashed #2b3a55;border-radius:14px;padding:16px;max-width:900px;margin:18px auto 0;
+    color:var(--dim);font-size:13px;transition:.2s}
+  .dropzone.over{border-color:var(--accent);background:rgba(79,140,255,.08);color:var(--text)}
+
+  /* ---------- result ---------- */
+  .verdict{border-radius:12px;padding:14px 18px;margin-bottom:16px;border:1px solid var(--line);
+    display:flex;gap:14px;align-items:center;background:var(--card)}
+  .verdict .icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:20px;flex:none}
+  .verdict.ok .icon{background:rgba(51,214,159,.15);color:var(--ok)}
+  .verdict.warn .icon{background:rgba(255,176,32,.15);color:var(--warn)}
+  .verdict.bad .icon{background:rgba(255,93,108,.15);color:var(--bad)}
+  .verdict .t{font-size:16px;font-weight:600;margin-bottom:3px}
+  .verdict .d{color:var(--muted);font-size:12.5px;line-height:1.7}
+
   .grid{display:grid;gap:12px}
   .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-  .card .k{color:var(--muted);font-size:12px;margin-bottom:7px}
+  .card .k{color:var(--muted);font-size:12px;margin-bottom:7px;display:flex;gap:5px;align-items:center}
+  .card .k .i{width:14px;height:14px;border-radius:50%;border:1px solid var(--dim);color:var(--dim);
+    font-size:10px;line-height:12px;text-align:center;cursor:help;flex:none}
   .card .v{font-family:var(--mono);font-size:20px;font-weight:600}
   .card .s{color:var(--dim);font-size:11px;margin-top:5px}
   .v.up{color:var(--warn)} .v.down{color:var(--accent)} .v.ok{color:var(--ok)} .v.bad{color:var(--bad)}
@@ -53,20 +78,15 @@
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #1b2434;white-space:nowrap}
   th{color:var(--muted);font-weight:500;font-size:12px;position:sticky;top:0;background:var(--card);z-index:5}
-  th.sortable{cursor:pointer;user-select:none}
-  th.sortable:hover{color:var(--text)}
   tbody tr:hover{background:#131b29}
   td.num,th.num{text-align:right;font-family:var(--mono)}
   .mono{font-family:var(--mono)}
   .muted{color:var(--muted)} .dim{color:var(--dim)} .small{font-size:12px}
   .tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:11px;
     background:#1d2839;color:var(--muted);border:1px solid #27354b}
-  .tag.up{color:var(--warn);border-color:#4a3a16;background:#2a2110}
-  .tag.down{color:#8ab4ff;border-color:#1e3a66;background:#111d31}
   .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;font-size:12px}
   .pill.ok{background:rgba(51,214,159,.12);color:var(--ok)}
   .pill.warn{background:rgba(255,176,32,.12);color:var(--warn)}
-  .pill.bad{background:rgba(255,93,108,.12);color:var(--bad)}
   .checks{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
   .check{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
     border-left:3px solid var(--ok)}
@@ -75,7 +95,8 @@
   .check .t{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .check .t b{font-size:13px;font-weight:600}
   .check .val{font-family:var(--mono);font-size:18px;margin:9px 0 4px}
-  .check .why{color:var(--dim);font-size:12px;line-height:1.6}
+  .check .why{color:var(--muted);font-size:12.5px;line-height:1.7}
+  .check .thr{color:var(--dim);font-size:11.5px;margin-top:6px}
   .chartwrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px 6px;margin-bottom:16px}
   .chartwrap .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
   .legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
@@ -107,11 +128,25 @@
   #localIpsLine{max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   footer{margin-top:26px;color:var(--dim);font-size:12px;line-height:1.8}
   .hidden{display:none!important}
+  /* help */
+  .help h2{font-size:17px;margin:26px 0 10px}
+  .help h2:first-child{margin-top:0}
+  .help p,.help li{color:var(--muted);line-height:1.9;font-size:13.5px}
+  .help li{margin:4px 0}
+  .help code{background:#0d1320;border:1px solid var(--line);border-radius:4px;padding:1px 6px;
+    font-family:var(--mono);font-size:12px;color:#c9d8f5}
+  .help .steps{display:grid;gap:10px;margin:12px 0}
+  .help .step{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px}
+  .help .step .num{width:24px;height:24px;flex:none;border-radius:50%;background:rgba(79,140,255,.15);
+    color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+  .help .step .txt{font-size:13px;line-height:1.8;color:var(--text)}
+  .help .step .txt small{color:var(--dim);display:block;margin-top:2px}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo"><span class="dot"></span>NetLens<small>离线流量分析</small></div>
+  <div class="logo"><span class="dot"></span>NetLens<small>本地流量分析</small></div>
   <div class="spacer"></div>
   <button class="btn" id="btnRecapture" style="display:none">重新抓包</button>
   <button class="btn" id="btnOpen">打开抓包文件</button>
@@ -127,19 +162,44 @@
 </header>
 
 <main>
-  <section id="dropZone" class="drop">
-    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#4f8cff" stroke-width="1.4">
-      <path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/>
-    </svg>
-    <h2>把抓包文件拖进来，或点击选择</h2>
-    <p>支持 <span class="mono">.pcapng</span> / <span class="mono">.pcap</span>（pktmon、Wireshark、tcpdump 均可）</p>
-    <p class="hint">全部在本机浏览器内解析，文件不会离开这台电脑</p>
-    <p style="margin-top:18px">
-      <button class="btn primary" id="btnPick">选择文件</button>
-      <button class="btn" id="btnDemo">用内置示例</button>
-    </p>
+  <!-- ============ 欢迎页 ============ -->
+  <section id="dropZone">
+    <div class="hero">
+      <h1>看看你的电脑，正在偷偷上传什么</h1>
+      <p>抓 3 分钟网络流量，逐条列出每个程序连了谁、传了多少，<br>
+         并自动检查 PCDN 偷跑、后台偷偷上传、被公网扫描等异常。</p>
+    </div>
+
+    <div class="starters">
+      <div class="starter">
+        <div class="n">方式一</div>
+        <b>直接抓包（推荐）</b>
+        <p>自动抓 3 分钟，抓完跳到结果页。需要管理员权限，会弹一次 UAC。</p>
+        <button class="btn primary" id="btnStartCapture">开始抓包</button>
+      </div>
+      <div class="starter">
+        <div class="n">方式二</div>
+        <b>打开已有文件</b>
+        <p>用 Wireshark / tcpdump 抓的 <span class="mono">.pcapng</span>、<span class="mono">.pcap</span> 也能分析。</p>
+        <button class="btn" id="btnPick2">选择文件</button>
+      </div>
+      <div class="starter">
+        <div class="n">方式三</div>
+        <b>先看示例报告</b>
+        <p>不想抓包？点开一份示例，先看看这个工具能给出什么结论。</p>
+        <button class="btn" id="btnDemo2">查看示例</button>
+      </div>
+    </div>
+
+    <div class="dropzone" id="droparea">
+      也可以把抓包文件直接拖到这里 · 全程在本机分析，不上传任何数据
+      <span id="captureHint" class="hidden" style="display:block;margin-top:6px;color:var(--warn)">
+        当前是"直接打开网页"模式，无法抓包。要抓包请双击 NetLens.cmd 启动。
+      </span>
+    </div>
   </section>
 
+  <!-- ============ 结果页 ============ -->
   <section id="result" class="hidden">
     <div class="filebar">
       <span id="fileInfo"></span>
@@ -147,6 +207,10 @@
       <span class="stat-inline" id="localIpsLine"></span>
     </div>
     <div id="warnBox"></div>
+    <div id="verdict" class="verdict ok">
+      <div class="icon">✓</div>
+      <div><div class="t"></div><div class="d"></div></div>
+    </div>
 
     <div class="cards grid" id="summaryCards"></div>
 
@@ -157,48 +221,59 @@
       <div class="tab" data-tab="remotes">远端 IP</div>
       <div class="tab" data-tab="domains">域名</div>
       <div class="tab" data-tab="flows">连接明细</div>
+      <div class="tab" data-tab="help">使用说明</div>
       <div class="tab" data-tab="settings">设置</div>
     </div>
 
     <div id="tab-overview">
       <div class="chartwrap">
         <div class="head">
-          <h3 style="margin:0">吞吐时间线</h3>
+          <h3 style="margin:0">流量时间线</h3>
           <div class="legend">
             <span><i style="background:#4f8cff"></i>下行（左轴）</span>
             <span><i style="background:#ffb020"></i>上行（右轴）</span>
             <span class="dim" id="chartHint"></span>
           </div>
         </div>
-        <canvas id="chart" height="220"></canvas>
+        <canvas id="chart" height="230"></canvas>
+        <p class="dim small" style="margin:2px 0 8px">
+          横轴是抓包内的秒数；把鼠标放到曲线上，可以看到那一小段的上传/下载速度。
+        </p>
       </div>
       <div class="split">
         <div class="panel">
-          <h3>上传最高的连接</h3>
+          <h3>上传最多的连接</h3>
           <div class="body"><table id="tblTopUp"></table></div>
         </div>
         <div class="panel">
-          <h3>下载最高的远端</h3>
+          <h3>下载最多的远端</h3>
           <div class="body"><table id="tblTopDown"></table></div>
         </div>
       </div>
     </div>
 
     <div id="tab-checks" class="hidden">
+      <p class="muted small" style="margin:0 0 12px;line-height:1.8">
+        下面 7 项是常见"不正常流量"的特征。绿色 = 没有触发；黄色 = 出现了该类特征，需要你自己判断是不是正常业务
+        （例如你本来就装了远程串流软件，出现"公网主动连入"就可能是正常的）。
+      </p>
       <div class="grid checks" id="checkCards"></div>
       <footer>判定阈值：上行 &gt;2 Mbps 且超过下行 20%；单连接上传 &gt;20 MB；单进程 ≥20 个远端且上传 &gt;300 KB；
-        任何公网主动连入；UDP &gt;10 个远端且各 &gt;20 KB。</footer>
+        任何公网主动连入；UDP &gt;10 个远端且各 &gt;20 KB。阈值可在 <code>web/core.js</code> 里修改。</footer>
     </div>
 
     <div id="tab-procs" class="hidden">
+      <p class="muted small" style="margin:0 0 10px">按程序汇总：谁传了多少、连了几个远端。</p>
       <div class="panel"><div class="body"><table id="tblProcs"></table></div></div>
     </div>
 
     <div id="tab-remotes" class="hidden">
+      <p class="muted small" style="margin:0 0 10px">按远端 IP 汇总：你的流量都发到了哪些服务器。</p>
       <div class="panel"><div class="body"><table id="tblRemotes"></table></div></div>
     </div>
 
     <div id="tab-domains" class="hidden">
+      <p class="muted small" style="margin:0 0 10px">从 TLS SNI / DNS / HTTP Host 还原出的域名（HTTPS 正文加密，仅供参考）。</p>
       <div class="panel"><div class="body"><table id="tblDomains"></table></div></div>
     </div>
 
@@ -210,12 +285,52 @@
       <div class="panel"><div class="body" style="max-height:560px"><table id="tblFlows"></table></div></div>
     </div>
 
+    <div id="tab-help" class="hidden">
+      <div class="panel help">
+        <h2>三步用起来</h2>
+        <div class="steps">
+          <div class="step"><div class="num">1</div><div class="txt"><b>抓包</b> —— 双击 <code>NetLens.cmd</code>，UAC 点"是"，等 3 分钟（这期间正常上网）。
+            <small>不用装 Wireshark，用的是 Windows 自带的 pktmon。</small></div></div>
+          <div class="step"><div class="num">2</div><div class="txt"><b>看结论</b> —— 结果页顶部的横幅会直接告诉你"有没有发现异常上传"。
+            <small>绿色=没发现；黄色=出现了值得注意的特征，点"异常判定"看详情。</small></div></div>
+          <div class="step"><div class="num">3</div><div class="txt"><b>看细节</b> —— "进程"页看哪个程序传得多，"连接明细"页看每一条连接。
+            <small>可以把结果导出成 Markdown / CSV 存档。</small></div></div>
+        </div>
+
+        <h2>这些数字是什么意思</h2>
+        <ul>
+          <li><b>上行 / 下行</b>：这台电脑发出的 / 收到的数据量。家庭宽带通常下行远大于上行。</li>
+          <li><b>应用层上行</b>：去掉 TCP 确认包和协议头之后，真正的"内容上传"。判断偷传要看这个。</li>
+          <li><b>远端 IP</b>：你连过去的服务器地址；"域名"列是它的名字（能解析出来才有）。</li>
+          <li><b>上行峰值</b>：1 秒内最高上传速度。PCDN 偷跑往往长时间维持在几 Mbps 以上。</li>
+        </ul>
+
+        <h2>什么情况算"不正常"</h2>
+        <ul>
+          <li>你没在传文件、没开直播，但上行长期 &gt; 2 Mbps；</li>
+          <li>某个陌生进程向几十个陌生 IP 同时上传（PCDN 的典型特征）；</li>
+          <li>有公网 IP 主动连进来（说明有服务暴露在公网，或被扫描）；</li>
+          <li>上行远大于下行，且持续存在。</li>
+        </ul>
+
+        <h2>常见问题</h2>
+        <ul>
+          <li><b>提示"拒绝访问"</b>：没有管理员权限。请从 <code>NetLens.cmd</code> 启动并允许 UAC；只分析文件则不需要。</li>
+          <li><b>抓到的流量很小</b>：这 3 分钟电脑基本空闲，正常。可以在你怀疑的场景下再抓一次。</li>
+          <li><b>看不到具体网站</b>：HTTPS 是加密的，走了代理（如 Clash）就更看不到；只能看到代理节点 IP。要看站点需要代理软件自己的连接日志。</li>
+          <li><b>能不能抓别人的电脑</b>：不能，只抓本机。</li>
+          <li><b>数据会不会被上传</b>：不会。解析全在本机浏览器里完成，工具不联网。</li>
+        </ul>
+      </div>
+    </div>
+
     <div id="tab-settings" class="hidden">
       <div class="panel">
         <h3>本机 IP</h3>
         <p class="muted small">用于区分上下行。留空则自动推断；可填多个，逗号分隔。</p>
         <input class="text" id="ipsInput" placeholder="例如 192.168.1.10, 10.0.0.5">
-        <p style="margin-top:10px"><button class="btn primary" id="btnReanalyze">用这些 IP 重新分析</button></p>
+        <p style="margin-top:10px"><button class="btn" id="btnReanalyze">用这些 IP 重新分析</button>
+          <span class="dim small">（需要重新拖入文件才生效）</span></p>
         <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
         <h3>关于</h3>
         <p class="muted small" style="line-height:1.9">

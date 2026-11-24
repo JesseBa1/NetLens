@@ -46,6 +46,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw ("pktmon 启动失败: " + ($startInfo | Out-String)) }
 
   $startTime = Get-Date
+  Write-Host ('[..] 抓包已开始，' + $Seconds + ' 秒后自动结束（这期间正常上网即可）…') -ForegroundColor Gray
   $writer = New-Object System.IO.StreamWriter($conns, $false, (New-Object System.Text.UTF8Encoding($false)))
   $writer.WriteLine('ts,proto,local,remote,state,pid,proc')
   $sw = [Diagnostics.Stopwatch]::StartNew()
