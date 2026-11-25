@@ -1,4 +1,4 @@
-﻿param([string]$Out = '')
+param([string]$Out = '')
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -14,14 +14,16 @@ if (-not (Test-Path $csc)) {
 if (-not (Test-Path $csc)) { throw '找不到 csc.exe（需要 .NET Framework 4.x）' }
 
 $cscArgs = @(
-  '/nologo', '/target:winexe', '/platform:anycpu',
-  ('/out:"' + $Out + '"'),
-  ('/win32icon:"' + $ico + '"'),
-  ('/win32manifest:"' + $manifest + '"'),
+  '/nologo',
+  '/target:winexe',
+  '/platform:anycpu',
+  ('/out:' + $Out),
+  ('/win32icon:' + $ico),
+  ('/win32manifest:' + $manifest),
   '/reference:System.dll',
   '/reference:System.Drawing.dll',
   '/reference:System.Windows.Forms.dll',
-  ('"' + $src + '"')
+  $src
 )
 
 & $csc @cscArgs
