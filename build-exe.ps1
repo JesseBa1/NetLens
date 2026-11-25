@@ -1,4 +1,4 @@
-param([string]$Out = '')
+﻿param([string]$Out = '')
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
