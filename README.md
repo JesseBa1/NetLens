@@ -288,6 +288,8 @@ NetLens\
 ├─ screenshot.png             界面截图
 ├─ screenshot-dialog.png      抓包设置截图
 ├─ captures\          抓包结果（已 gitignore）
+├─ CODE_SIGNING.md    代码签名政策
+├─ .github\            CI（构建 NetLens.exe）
 ├─ LICENSE            MIT
 └─ README.md
 ```
@@ -307,6 +309,17 @@ const r = C.analyze(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLe
 });
 console.log(r.meta, r.checks);
 ```
+
+---
+
+## Code signing policy（代码签名政策）
+
+Windows 构建的代码签名由 [SignPath Foundation](https://signpath.org/) 提供（**申请中**），完整说明见
+[CODE_SIGNING.md](CODE_SIGNING.md)。
+
+- 在获批之前，发布的是**未签名**构建；请用 Release 页面的 SHA-256 校验下载文件
+- 构建由 GitHub Actions 在 `windows-latest` 上执行 `build-exe.ps1`，产物可追溯
+- 隐私：本程序不会向其他网络系统传输任何信息，除非用户明确请求；抓包文件只保存在本机
 
 ---
 

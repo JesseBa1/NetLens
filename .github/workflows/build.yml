@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-launcher:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build NetLens.exe
+        shell: pwsh
+        run: ./build-exe.ps1
+
+      - name: Show version info
+        shell: pwsh
+        run: (Get-Item NetLens.exe).VersionInfo | Format-List ProductName,FileVersion,ProductVersion,CompanyName
+
+      - name: Upload launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetLens-exe
+          path: NetLens.exe
+          if-no-files-found: error

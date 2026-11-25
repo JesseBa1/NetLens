@@ -4,8 +4,19 @@ using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
+
+
+[assembly: AssemblyTitle("NetLens")]
+[assembly: AssemblyDescription("Offline Windows network traffic analyzer")]
+[assembly: AssemblyProduct("NetLens")]
+[assembly: AssemblyCompany("JesseBa1")]
+[assembly: AssemblyCopyright("Copyright (c) 2026 JesseBa1")]
+[assembly: AssemblyVersion("1.5.0.0")]
+[assembly: AssemblyFileVersion("1.5.0.0")]
+[assembly: AssemblyInformationalVersion("1.5.0")]
 
 namespace NetLens
 {
