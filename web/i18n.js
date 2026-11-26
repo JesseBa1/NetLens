@@ -163,7 +163,7 @@
       '<div class="step"><div class="num">2</div><div class="txt"><b>看结论</b> —— 顶部横幅直接告诉你有没有异常上传。' +
       '<small>绿色 = 没发现；黄色 = 出现了值得注意的特征，点「异常判定」看详情。</small></div></div>' +
       '<div class="step"><div class="num">3</div><div class="txt"><b>看细节</b> —— 「进程」页看谁传得多，「连接明细」页看每一条连接。' +
-      '<small>可以导出成 Markdown / CSV 存档。</small></div></div></div>' +
+      '<small>每次抓完会自动存进「历史」，之后随时可以回看。也可以导出成 Markdown / CSV 存档。</small></div></div></div>' +
       '<h2>这些数字是什么意思</h2><ul>' +
       '<li><b>上行 / 下行</b>：这台电脑发出 / 收到的数据量。家庭宽带通常下行远大于上行。</li>' +
       '<li><b>应用层上行</b>：去掉 TCP 确认包和协议头之后，真正的「内容上传」。判断偷传要看这个。</li>' +
@@ -343,7 +343,7 @@
       '<div class="step"><div class="num">2</div><div class="txt"><b>Read the verdict</b> — the banner at the top tells you whether anything looked wrong.' +
       '<small>Green = nothing found; amber = a pattern appeared, open "Checks" for details.</small></div></div>' +
       '<div class="step"><div class="num">3</div><div class="txt"><b>Drill down</b> — "Processes" shows who sent the most; "Connections" lists every flow.' +
-      '<small>Export as Markdown / CSV / JSON.</small></div></div></div>' +
+      '<small>Each run is saved to <b>History</b> automatically — reopen it any time. You can also export as Markdown / CSV / JSON.</small></div></div></div>' +
       '<h2>What the numbers mean</h2><ul>' +
       '<li><b>Upload / download</b>: total data sent and received. Home connections download far more than they upload.</li>' +
       '<li><b>Payload upload</b>: real content after removing TCP ACKs and headers. This is what matters for hidden uploads.</li>' +
@@ -523,7 +523,7 @@
       '<div class="step"><div class="num">2</div><div class="txt"><b>結論を見る</b> — 上部のバナーが異常の有無を教えてくれます。' +
       '<small>緑 = 問題なし、黄 = 特徴あり。「チェック」で詳細を確認。</small></div></div>' +
       '<div class="step"><div class="num">3</div><div class="txt"><b>詳細を見る</b> — 「プロセス」で送信量の多いアプリ、「接続一覧」で個別の通信。' +
-      '<small>Markdown / CSV / JSON で保存できます。</small></div></div></div>' +
+      '<small>各実行は自動で「履歴」に保存され、いつでも開き直せます。Markdown / CSV / JSON でも保存できます。</small></div></div></div>' +
       '<h2>数字の意味</h2><ul>' +
       '<li><b>上り / 下り</b>：送受信したデータ量。通常の回線は下りが圧倒的に多いです。</li>' +
       '<li><b>アプリ層の上り</b>：TCP ACK とヘッダーを除いた実際の送信内容。不正送信の判断はこれで。</li>' +
@@ -703,7 +703,7 @@
       '<div class="step"><div class="num">2</div><div class="txt"><b>결론 확인</b> — 상단 배너가 이상 여부를 알려줍니다.' +
       '<small>초록 = 문제 없음, 노랑 = 주의. "점검"에서 자세히 확인하세요.</small></div></div>' +
       '<div class="step"><div class="num">3</div><div class="txt"><b>상세 보기</b> — "프로세스"에서 많이 보낸 앱, "연결 목록"에서 개별 연결.' +
-      '<small>Markdown / CSV / JSON으로 저장할 수 있습니다.</small></div></div></div>' +
+      '<small>실행할 때마다 자동으로 「기록」에 저장되어 언제든 다시 볼 수 있습니다. Markdown / CSV / JSON으로도 저장할 수 있습니다.</small></div></div></div>' +
       '<h2>숫자의 의미</h2><ul>' +
       '<li><b>업로드 / 다운로드</b>: 보내고 받은 데이터량. 일반 회선은 다운로드가 훨씬 큽니다.</li>' +
       '<li><b>애플리케이션 업로드</b>: TCP ACK와 헤더를 제외한 실제 전송량. 몰래 업로드 판단에 사용합니다.</li>' +
@@ -883,7 +883,7 @@
       '<div class="step"><div class="num">2</div><div class="txt"><b>Ler o veredito</b> — o banner no topo diz se algo pareceu errado.' +
       '<small>Verde = nada encontrado; âmbar = um padrão apareceu, abra "Verificações".</small></div></div>' +
       '<div class="step"><div class="num">3</div><div class="txt"><b>Detalhar</b> — "Processos" mostra quem enviou mais; "Conexões" lista cada fluxo.' +
-      '<small>Exporte em Markdown / CSV / JSON.</small></div></div></div>' +
+      '<small>Cada execução é salva automaticamente no <b>Histórico</b> — reabra quando quiser. Também pode exportar em Markdown / CSV / JSON.</small></div></div></div>' +
       '<h2>O que os números significam</h2><ul>' +
       '<li><b>Upload / download</b>: total enviado e recebido. Conexões domésticas baixam muito mais.</li>' +
       '<li><b>Upload de aplicação</b>: conteúdo real sem ACKs e cabeçalhos. É o que importa para upload escondido.</li>' +
@@ -1074,7 +1074,7 @@
         '<div class="step"><div class="num">2</div><div class="txt"><b>看结论</b> —— 顶部横幅直接告诉你有没有异常上传。' +
         '<small>绿色 = 没发现；黄色 = 出现了值得注意的特征，点「异常判定」看详情。</small></div></div>' +
         '<div class="step"><div class="num">3</div><div class="txt"><b>看细节</b> —— 「进程」看谁传得多，「连接明细」看每一条连接；定时抽采还多出「每次采样的结果」和「出现次数」。' +
-        '<small>可以导出成 Markdown / CSV 存档。</small></div></div></div>' +
+        '<small>每次抓完会自动存进「历史」，之后随时可以回看。也可以导出成 Markdown / CSV 存档。</small></div></div></div>' +
         '<h2>这些数字是什么意思</h2><ul>' +
         '<li><b>上行 / 下行</b>：这台电脑发出 / 收到的数据量。家庭宽带通常下行远大于上行。</li>' +
         '<li><b>应用层上行</b>：去掉 TCP 确认包和协议头之后，真正的「内容上传」。判断偷传要看这个。</li>' +
@@ -1120,7 +1120,7 @@
         '<div class="step"><div class="num">2</div><div class="txt"><b>Read the verdict</b> — the banner at the top tells you whether anything looked wrong.' +
         '<small>Green = nothing found; amber = a pattern appeared, open “Checks” for details.</small></div></div>' +
         '<div class="step"><div class="num">3</div><div class="txt"><b>Drill down</b> — “Processes” shows who sent the most, “Connections” lists every flow; scheduled samples also add a per-sample table and an “appears in” column.' +
-        '<small>Export as Markdown / CSV / JSON.</small></div></div></div>' +
+        '<small>Each run is saved to <b>History</b> automatically — reopen it any time. You can also export as Markdown / CSV / JSON.</small></div></div></div>' +
         '<h2>What the numbers mean</h2><ul>' +
         '<li><b>Upload / download</b>: total data sent and received. Home connections download far more than they upload.</li>' +
         '<li><b>Payload upload</b>: real content after removing TCP ACKs and headers. This is what matters for hidden uploads.</li>' +
@@ -1166,7 +1166,7 @@
         '<div class="step"><div class="num">2</div><div class="txt"><b>結論を見る</b> — 上部のバナーが異常の有無を教えてくれます。' +
         '<small>緑 = 問題なし、黄 = 特徴あり。「チェック」で詳細を確認。</small></div></div>' +
         '<div class="step"><div class="num">3</div><div class="txt"><b>詳細を見る</b> — 「プロセス」で送信量の多いアプリ、「接続一覧」で個別の通信。定期サンプリングでは「各サンプルの結果」と「出現回数」も表示されます。' +
-        '<small>Markdown / CSV / JSON で保存できます。</small></div></div></div>' +
+        '<small>各実行は自動で「履歴」に保存され、いつでも開き直せます。Markdown / CSV / JSON でも保存できます。</small></div></div></div>' +
         '<h2>数字の意味</h2><ul>' +
         '<li><b>上り / 下り</b>：送受信したデータ量。通常の回線は下りが圧倒的に多いです。</li>' +
         '<li><b>アプリ層の上り</b>：TCP ACK とヘッダーを除いた実際の送信内容。不正送信の判断はこれで。</li>' +
@@ -1212,7 +1212,7 @@
         '<div class="step"><div class="num">2</div><div class="txt"><b>결론 확인</b> — 상단 배너가 이상 여부를 알려줍니다.' +
         '<small>초록 = 문제 없음, 노랑 = 주의. “점검”에서 자세히 확인하세요.</small></div></div>' +
         '<div class="step"><div class="num">3</div><div class="txt"><b>상세 보기</b> — “프로세스”에서 많이 보낸 앱, “연결 목록”에서 개별 연결. 정기 샘플링은 “샘플별 결과”와 “나타난 횟수”도 보여줍니다.' +
-        '<small>Markdown / CSV / JSON으로 저장할 수 있습니다.</small></div></div></div>' +
+        '<small>실행할 때마다 자동으로 「기록」에 저장되어 언제든 다시 볼 수 있습니다. Markdown / CSV / JSON으로도 저장할 수 있습니다.</small></div></div></div>' +
         '<h2>숫자의 의미</h2><ul>' +
         '<li><b>업로드 / 다운로드</b>: 보내고 받은 데이터량. 일반 회선은 다운로드가 훨씬 큽니다.</li>' +
         '<li><b>애플리케이션 업로드</b>: TCP ACK와 헤더를 제외한 실제 전송량. 몰래 업로드 판단에 사용합니다.</li>' +
@@ -1258,7 +1258,7 @@
         '<div class="step"><div class="num">2</div><div class="txt"><b>Ler o veredito</b> — o banner no topo diz se algo pareceu errado.' +
         '<small>Verde = nada encontrado; âmbar = um padrão apareceu, abra “Verificações”.</small></div></div>' +
         '<div class="step"><div class="num">3</div><div class="txt"><b>Detalhar</b> — “Processos” mostra quem enviou mais; “Conexões” lista cada fluxo. A amostragem agendada adiciona a tabela por amostra e a coluna “aparece em”.' +
-        '<small>Exporte em Markdown / CSV / JSON.</small></div></div></div>' +
+        '<small>Cada execução é salva automaticamente no <b>Histórico</b> — reabra quando quiser. Também pode exportar em Markdown / CSV / JSON.</small></div></div></div>' +
         '<h2>O que os números significam</h2><ul>' +
         '<li><b>Upload / download</b>: total enviado e recebido. Conexões domésticas baixam muito mais.</li>' +
         '<li><b>Upload de aplicação</b>: conteúdo real sem ACKs e cabeçalhos. É o que importa para upload escondido.</li>' +
@@ -1280,6 +1280,82 @@
   };
   Object.keys(extra3).forEach(function (l) {
     Object.keys(extra3[l]).forEach(function (k) { dict[l][k] = extra3[l][k]; });
+  });
+
+  var extra4 = {
+    zh: {
+      'tab.history': '历史',
+      'history.refresh': '刷新',
+      'history.count': '共 {n} 条记录',
+      'history.empty': '还没有历史记录。抓完一次后会自动保存，之后可以随时回看。',
+      'history.col.time': '时间', 'history.col.name': '来源', 'history.col.mode': '类型',
+      'history.col.up': '上行', 'history.col.down': '下行', 'history.col.verdict': '结论',
+      'history.ok': '正常', 'history.warn': '{n} 项注意',
+      'history.delete': '删除', 'history.deleteConfirm': '确定删除这条历史记录吗？',
+      'history.deleted': '已删除',
+      'history.modeSingle': '单次 {s} 秒', 'history.modeSeries': '抽采 {n} 次',
+      'history.loadFail': '读取历史失败',
+      'overlay.historyLoading': '正在读取历史记录…'
+    },
+    en: {
+      'tab.history': 'History',
+      'history.refresh': 'Refresh',
+      'history.count': '{n} entries',
+      'history.empty': 'No history yet. Each run is saved automatically.',
+      'history.col.time': 'Time', 'history.col.name': 'Source', 'history.col.mode': 'Mode',
+      'history.col.up': 'Up', 'history.col.down': 'Down', 'history.col.verdict': 'Verdict',
+      'history.ok': 'OK', 'history.warn': '{n} warnings',
+      'history.delete': 'Delete', 'history.deleteConfirm': 'Delete this history entry?',
+      'history.deleted': 'Deleted',
+      'history.modeSingle': 'single {s}s', 'history.modeSeries': '{n} samples',
+      'history.loadFail': 'Failed to load history',
+      'overlay.historyLoading': 'Loading history…'
+    },
+    ja: {
+      'tab.history': '履歴',
+      'history.refresh': '更新',
+      'history.count': '{n} 件',
+      'history.empty': '履歴はまだありません。実行ごとに自動保存されます。',
+      'history.col.time': '時刻', 'history.col.name': 'ソース', 'history.col.mode': '種類',
+      'history.col.up': '上り', 'history.col.down': '下り', 'history.col.verdict': '判定',
+      'history.ok': '正常', 'history.warn': '注意 {n} 件',
+      'history.delete': '削除', 'history.deleteConfirm': 'この履歴を削除しますか？',
+      'history.deleted': '削除しました',
+      'history.modeSingle': '単発 {s} 秒', 'history.modeSeries': '{n} 回',
+      'history.loadFail': '履歴の読み込みに失敗しました',
+      'overlay.historyLoading': '履歴を読み込み中…'
+    },
+    ko: {
+      'tab.history': '기록',
+      'history.refresh': '새로 고침',
+      'history.count': '{n}개 기록',
+      'history.empty': '기록이 없습니다. 실행할 때마다 자동 저장됩니다.',
+      'history.col.time': '시간', 'history.col.name': '원본', 'history.col.mode': '유형',
+      'history.col.up': '업로드', 'history.col.down': '다운로드', 'history.col.verdict': '판정',
+      'history.ok': '정상', 'history.warn': '주의 {n}개',
+      'history.delete': '삭제', 'history.deleteConfirm': '이 기록을 삭제할까요?',
+      'history.deleted': '삭제됨',
+      'history.modeSingle': '단일 {s}초', 'history.modeSeries': '{n}회',
+      'history.loadFail': '기록을 불러오지 못했습니다',
+      'overlay.historyLoading': '기록을 불러오는 중…'
+    },
+    pt: {
+      'tab.history': 'Histórico',
+      'history.refresh': 'Atualizar',
+      'history.count': '{n} registros',
+      'history.empty': 'Ainda sem histórico. Cada execução é salva automaticamente.',
+      'history.col.time': 'Hora', 'history.col.name': 'Origem', 'history.col.mode': 'Modo',
+      'history.col.up': 'Upload', 'history.col.down': 'Download', 'history.col.verdict': 'Veredito',
+      'history.ok': 'OK', 'history.warn': '{n} avisos',
+      'history.delete': 'Excluir', 'history.deleteConfirm': 'Excluir este registro?',
+      'history.deleted': 'Excluído',
+      'history.modeSingle': 'única {s}s', 'history.modeSeries': '{n} amostras',
+      'history.loadFail': 'Falha ao carregar o histórico',
+      'overlay.historyLoading': 'Carregando histórico…'
+    }
+  };
+  Object.keys(extra4).forEach(function (l) {
+    Object.keys(extra4[l]).forEach(function (k) { dict[l][k] = extra4[l][k]; });
   });
 
   function t(lang, key, vars) {

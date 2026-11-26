@@ -88,7 +88,8 @@ function Send-Text($ctx, [string]$text, [string]$type, [int]$code = 200) {
 }
 
 function Send-Json($ctx, $obj, [int]$code = 200) {
-  $json = $obj | ConvertTo-Json -Depth 6 -Compress
+  $json = ConvertTo-Json -InputObject $obj -Depth 6 -Compress
+  if ($null -eq $json -or $json -eq '') { $json = 'null' }
   Send-Bytes $ctx ([Text.Encoding]::UTF8.GetBytes($json)) 'application/json; charset=utf-8' $code
 }
 
@@ -178,6 +179,95 @@ try {
           Send-Json $ctx ([ordered]@{ phase = 'idle'; progress = 0 })
         }
       }
+      elseif ($path -eq '/api/history' -and $req.HttpMethod -eq 'POST') {
+        $histDir = Join-Path $capDir 'history'
+        New-Item -ItemType Directory -Force -Path $histDir | Out-Null
+        $len = $req.ContentLength64
+        if ($len -le 0 -or $len -gt 52428800) {
+          Send-Json $ctx ([ordered]@{ error = 'payload size' }) 400
+        } else {
+          $reader = New-Object System.IO.StreamReader($req.InputStream, [Text.Encoding]::UTF8)
+          $body = $reader.ReadToEnd()
+          $reader.Close()
+          try {
+            $obj = $body | ConvertFrom-Json
+            $key = ([string]$obj.name) + '|' + ([string]$obj.result.meta.packets) + '|' + ([string]$obj.result.meta.duration)
+            $existing = $null
+            Get-ChildItem $histDir -Filter '*.summary.json' -ErrorAction SilentlyContinue |
+              Sort-Object Name -Descending | Select-Object -First 40 | ForEach-Object {
+                if (-not $existing) {
+                  try {
+                    $sj = Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+                    if ($sj.key -eq $key) { $existing = $sj.id }
+                  } catch { }
+                }
+              }
+            if ($existing) {
+              Send-Json $ctx ([ordered]@{ ok = $true; id = $existing; duplicate = $true })
+            } else {
+              $id = Get-Date -Format 'yyyyMMdd_HHmmss_fff'
+              $file = Join-Path $histDir ($id + '.json')
+              [IO.File]::WriteAllText($file, $body, (New-Object Text.UTF8Encoding($false)))
+              $m = $obj.result.meta
+              $fail = @($obj.result.checks | Where-Object { -not $_.pass }).Count
+              $sum = [ordered]@{
+                id       = $id
+                key      = $key
+                name     = [string]$obj.name
+                mode     = [string]$obj.mode
+                created  = (Get-Date).ToString('o')
+                duration = [math]::Round([double]$m.duration, 1)
+                up       = [double]$m.bytesOut
+                down     = [double]$m.bytesIn
+                packets  = [int]$m.packets
+                fail     = $fail
+                samples  = [int]$m.sampleCount
+              }
+              $sum | ConvertTo-Json -Compress | Set-Content -Path (Join-Path $histDir ($id + '.summary.json')) -Encoding UTF8
+              $old = Get-ChildItem $histDir -Filter '*.summary.json' | Sort-Object Name -Descending | Select-Object -Skip 100
+              foreach ($f in $old) {
+                $bid = $f.Name -replace '\.summary\.json$', ''
+                Remove-Item (Join-Path $histDir ($bid + '.json')) -Force -ErrorAction SilentlyContinue
+                Remove-Item $f.FullName -Force -ErrorAction SilentlyContinue
+              }
+              Send-Json $ctx ([ordered]@{ ok = $true; id = $id })
+            }
+          } catch {
+            Send-Json $ctx ([ordered]@{ error = 'bad json' }) 400
+          }
+        }
+      }
+      elseif ($path -eq '/api/history' -and $req.HttpMethod -eq 'GET') {
+        $histDir = Join-Path $capDir 'history'
+        $items = New-Object System.Collections.ArrayList
+        if (Test-Path $histDir) {
+          Get-ChildItem $histDir -Filter '*.summary.json' -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending | Select-Object -First 100 | ForEach-Object {
+              try { [void]$items.Add((Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json)) } catch { }
+            }
+        }
+        Send-Json $ctx ([object[]]$items.ToArray())
+      }
+      elseif ($path -eq '/api/history/item') {
+        $id = $req.QueryString['id']
+        if ($id -match '^[0-9_]+$') {
+          $f = Join-Path (Join-Path $capDir 'history') ($id + '.json')
+          if (Test-Path $f) { Send-File $ctx $f } else { Send-Json $ctx ([ordered]@{ error = 'not found' }) 404 }
+        } else {
+          Send-Json $ctx ([ordered]@{ error = 'bad id' }) 400
+        }
+      }
+      elseif ($path -eq '/api/history' -and $req.HttpMethod -eq 'DELETE') {
+        $id = $req.QueryString['id']
+        if ($id -match '^[0-9_]+$') {
+          $histDir = Join-Path $capDir 'history'
+          Remove-Item (Join-Path $histDir ($id + '.json')) -Force -ErrorAction SilentlyContinue
+          Remove-Item (Join-Path $histDir ($id + '.summary.json')) -Force -ErrorAction SilentlyContinue
+          Send-Json $ctx ([ordered]@{ ok = $true })
+        } else {
+          Send-Json $ctx ([ordered]@{ error = 'bad id' }) 400
+        }
+      }
       elseif ($path -eq '/api/capture') {
         if ($job -and $job.State -eq 'Running') {
           Send-Json $ctx ([ordered]@{ ok = $false; message = '正在抓包，请稍候' })
@@ -225,6 +315,7 @@ try {
         else { Send-Json $ctx ([ordered]@{ error = 'not found' }) 404 }
       }
     } catch {
+      try { Add-Content -Path (Join-Path $root 'server-error.log') -Value ((Get-Date).ToString('o') + ' ' + $path + ' ' + $_.Exception.ToString()) } catch { }
       try { Send-Json $ctx ([ordered]@{ error = $_.Exception.Message }) 500 } catch { }
     }
   }

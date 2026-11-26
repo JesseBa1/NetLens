@@ -16,6 +16,8 @@
     initialTab: null,
     elapsed: 0,
     serverWarnings: [],
+    history: [],
+    historyView: false,
     mode: 'single',
     capMode: 'single',
     capSec: 180,
@@ -144,8 +146,10 @@
         state.isDemo = false;
         state.mode = 'single';
         state.localIps = localIps || res.meta.localIps;
+        state.historyView = false;
         render();
         overlay(false);
+        saveHistory();
       } catch (e) {
         overlay(false);
         console.error(e);
@@ -333,8 +337,10 @@
         state.mode = 'series';
         state.elapsed = 0;
         state.localIps = meta.localIps || [];
+        state.historyView = false;
         render();
         overlay(false);
+        saveHistory();
         return;
       }
       var s = samples[idx];
@@ -616,6 +622,102 @@
       { label: t('th.process'), value: function (x) { return esc(pname(x.proc)) + ' <span class="dim small">#' + x.pid + '</span>'; } },
       { label: t('th.domain'), value: function (x) { return '<span class="small muted">' + esc(x.domain || '-') + '</span>'; } }
     ], rows);
+  }
+
+  /* ---------- history ---------- */
+  function isServed() { return location.protocol === 'http:' || location.protocol === 'https:'; }
+
+  function saveHistory() {
+    if (!isServed() || state.isDemo || state.historyView || !state.result) return;
+    var payload = { name: state.fileName || '', mode: state.mode || 'single', result: state.result };
+    fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.ok) loadHistory(true);
+    }).catch(function () { });
+  }
+
+  function loadHistory(silent) {
+    if (!isServed()) return;
+    fetch('/api/history').then(function (r) { return r.json(); }).then(function (items) {
+      state.history = Array.isArray(items) ? items : [];
+      renderHistory();
+    }).catch(function () {
+      if (!silent) toast(t('history.loadFail'));
+    });
+  }
+
+  function histTime(iso) {
+    var d = new Date(iso);
+    if (!isFinite(d.getTime())) return '-';
+    var p = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
+      p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function renderHistory() {
+    var rows = state.history || [];
+    $('histCount').textContent = t('history.count', { n: rows.length });
+    var html = '<thead><tr><th>' + esc(t('history.col.time')) + '</th><th>' + esc(t('history.col.name')) +
+      '</th><th>' + esc(t('history.col.mode')) + '</th><th class="num">' + esc(t('history.col.up')) +
+      '</th><th class="num">' + esc(t('history.col.down')) + '</th><th>' + esc(t('history.col.verdict')) +
+      '</th><th></th></tr></thead><tbody>';
+    if (!rows.length) {
+      html += '<tr><td colspan="7" class="muted">' + esc(t('history.empty')) + '</td></tr>';
+    } else {
+      rows.forEach(function (x) {
+        var badge = x.fail
+          ? '<span class="pill warn">' + esc(t('history.warn', { n: x.fail })) + '</span>'
+          : '<span class="pill ok">' + esc(t('history.ok')) + '</span>';
+        var mode = x.mode === 'series'
+          ? t('history.modeSeries', { n: x.samples || 0 })
+          : t('history.modeSingle', { s: Math.round(x.duration || 0) });
+        html += '<tr data-id="' + esc(x.id) + '" style="cursor:pointer">' +
+          '<td class="mono small">' + esc(histTime(x.created)) + '</td>' +
+          '<td>' + esc(x.name || '-') + '</td>' +
+          '<td class="small muted">' + esc(mode) + '</td>' +
+          '<td class="num" style="color:var(--warn)">' + fmtBytes(x.up) + '</td>' +
+          '<td class="num">' + fmtBytes(x.down) + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td class="num"><button class="btn" data-del="' + esc(x.id) + '">' + esc(t('history.delete')) + '</button></td></tr>';
+      });
+    }
+    $('tblHistory').innerHTML = html + '</tbody>';
+  }
+
+  function openHistory(id) {
+    overlay(true, t('overlay.historyLoading'));
+    fetch('/api/history/item?id=' + encodeURIComponent(id))
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (payload) {
+        var res = payload.result;
+        state.result = res;
+        state.mode = (res.meta && res.meta.mode === 'series') ? 'series' : 'single';
+        state.fileName = payload.name || '';
+        state.isDemo = false;
+        state.historyView = true;
+        state.elapsed = 0;
+        state.localIps = (res.meta && res.meta.localIps) || [];
+        state.serverWarnings = (res.meta && res.meta.warningCodes) || [];
+        render();
+        var tab = document.querySelector('.tab[data-tab="overview"]');
+        if (tab) tab.click();
+        overlay(false);
+      })
+      .catch(function (e) {
+        overlay(false);
+        toast(t('history.loadFail') + ' ' + e.message, 5000);
+      });
+  }
+
+  function deleteHistory(id) {
+    if (!confirm(t('history.deleteConfirm'))) return;
+    fetch('/api/history?id=' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (r) { return r.json(); })
+      .then(function () { toast(t('history.deleted')); loadHistory(true); })
+      .catch(function () { toast(t('history.loadFail')); });
   }
 
   /* ---------- chart ---------- */
@@ -972,6 +1074,8 @@
       $('btnStartCapture').disabled = true;
       $('btnStartCapture').title = t('toast.needCmd');
       $('captureHint').classList.remove('hidden');
+      var histTab = document.querySelector('.tab[data-tab="history"]');
+      if (histTab) histTab.style.display = 'none';
     }
 
     // capture dialog
@@ -1014,10 +1118,11 @@
       Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (x) {
         x.classList.toggle('active', x === tab);
       });
-      ['overview', 'checks', 'procs', 'remotes', 'domains', 'flows', 'help', 'settings'].forEach(function (n) {
+      ['overview', 'checks', 'procs', 'remotes', 'domains', 'flows', 'history', 'help', 'settings'].forEach(function (n) {
         $('tab-' + n).classList.toggle('hidden', n !== name);
       });
       if (name === 'overview') renderChart();
+      if (name === 'history') loadHistory();
     });
 
     $('btnExport').onclick = function (e) {
@@ -1034,6 +1139,14 @@
     });
 
     $('flowFilter').addEventListener('input', function (e) { if (state.result) renderFlows(e.target.value); });
+
+    $('btnHistRefresh').onclick = function () { loadHistory(); };
+    $('tblHistory').addEventListener('click', function (e) {
+      var del = e.target.closest('[data-del]');
+      if (del) { e.stopPropagation(); deleteHistory(del.getAttribute('data-del')); return; }
+      var tr = e.target.closest('tr[data-id]');
+      if (tr) openHistory(tr.getAttribute('data-id'));
+    });
 
     $('btnReanalyze').onclick = function () {
       if (!state.result) return;

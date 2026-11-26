@@ -279,6 +279,7 @@
       <div class="tab" data-tab="remotes" data-i18n="tab.remotes">远端 IP</div>
       <div class="tab" data-tab="domains" data-i18n="tab.domains">域名</div>
       <div class="tab" data-tab="flows" data-i18n="tab.flows">连接明细</div>
+      <div class="tab" data-tab="history" data-i18n="tab.history">历史</div>
       <div class="tab" data-tab="help" data-i18n="tab.help">使用说明</div>
       <div class="tab" data-tab="settings" data-i18n="tab.settings">设置</div>
     </div>
@@ -347,6 +348,14 @@
         <span class="stat-inline" id="flowCountLine"></span>
       </div>
       <div class="panel"><div class="body" style="max-height:560px"><table id="tblFlows"></table></div></div>
+    </div>
+
+    <div id="tab-history" class="hidden">
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn" id="btnHistRefresh" data-i18n="history.refresh">刷新</button>
+        <span class="stat-inline" id="histCount"></span>
+      </div>
+      <div class="panel"><div class="body" style="max-height:560px"><table id="tblHistory"></table></div></div>
     </div>
 
     <div id="tab-help" class="hidden"><div class="panel help" id="helpBody"></div></div>
