@@ -2,7 +2,7 @@
 
 > 看看你的电脑，到底在偷偷上传什么。
 
-双击 `NetLens.exe`，抓 **3 分钟**（可自选 1/10/30 分钟，或定时抽采）网络流量，在浏览器里告诉你**每个程序连了谁、传了多少**，
+双击 `NetLens.cmd`，抓 **3 分钟**（可自选 1/10/30 分钟，或定时抽采）网络流量，在浏览器里告诉你**每个程序连了谁、传了多少**，
 并自动检查 **PCDN 偷跑 / 后台偷偷上传 / 被公网扫描**。
 
 界面支持 **中文 / English / 日本語 / 한국어 / Português**，明暗主题一键切换（默认浅色）。
@@ -21,7 +21,7 @@
 ## 太长不看
 
 1. 下载 [最新版](https://github.com/JesseBa1/NetLens/releases/latest) 的 zip，解压
-2. 双击 **`NetLens.exe`** → UAC 点「是」→ 浏览器自动打开 → 在网页里选抓多久
+2. 双击 **`NetLens.cmd`** → UAC 点「是」→ 浏览器自动打开 → 在网页里选抓多久
 3. 等它抓完（默认 3 分钟，可改 1/10/30 分钟或定时抽采），浏览器自动弹出结果
 
 不用装 Wireshark、不用装 Python、不用联网。分析全程在你自己的浏览器里完成。
@@ -46,12 +46,12 @@
 去 [Releases](https://github.com/JesseBa1/NetLens/releases/latest) 下载最新的 `NetLens-v*.zip`，
 解压到任意文件夹（比如桌面）。**不要**在压缩包里直接双击。
 
-### 第 2 步：双击 `NetLens.exe`
+### 第 2 步：双击 `NetLens.cmd`
 
-会弹出一个蓝色的"用户帐户控制"弹窗 → 点 **「是」**。程序缩到右下角托盘，浏览器自动打开分析页面。
+会弹出一个蓝色的"用户帐户控制"弹窗 → 点 **「是」**，随后出现一个控制台窗口。
 
-> 托盘右键可以「打开界面 / 打开抓包目录 / 退出 NetLens」；退出会同时停掉后台服务。
-> 没有 `NetLens.exe` 也可以双击 `NetLens.cmd`，功能一样，只是会保留一个控制台窗口。
+> 控制台窗口会显示抓包进度和本地服务地址，**抓包期间不要关**；关闭窗口就停止服务。
+> 浏览器会自动打开分析页面；如果没打开，按控制台里打印的地址访问。
 
 > 为什么要管理员权限？抓包用的是 Windows 自带的 `pktmon` 驱动，必须管理员才能启用。
 > 不想给权限也可以：只分析已有文件时不需要管理员。
@@ -93,7 +93,7 @@
 | 弹窗 | 是什么 | 怎么办 |
 |---|---|---|
 | 蓝色「用户帐户控制」 | Windows 在问你是否允许抓包 | 点「是」 |
-| 「Windows 已保护你的电脑」 | 启动器没有代码签名，SmartScreen 的例行提示 | 点「更多信息」→「仍要运行」 |
+| 黑色控制台窗口 | 抓包进度和本地服务 | 抓包期间保持打开；关闭即停止服务 |
 | 杀毒软件提示 | 因为调用了抓包驱动 + 监听本地端口 | 允许即可；不放心可以只保留 `web` 目录做纯文件分析 |
 
 ---
@@ -211,7 +211,7 @@ HTTPS 是加密的，只能看到服务器 IP；如果还走了代理（Clash、
 <details>
 <summary><b>端口 8765 被占用了</b></summary>
 
-`NetLens.exe` 每次会随机挑一个空闲端口，不用担心冲突；用 `NetLens.cmd` 时从 8765 开始向后找，控制台会打印实际地址。
+会从 8765 开始往后找可用端口（8766、8767…），控制台会打印实际地址。
 </details>
 
 <details>
@@ -252,7 +252,6 @@ NetLens.cmd
 .\capture.ps1 -Seconds 60 -Series $true -Times 12 -Interval 600
 ```
 
-- 重新编译启动器：`powershell -File build-exe.ps1`（需要系统自带的 csc.exe）
 - 改判定阈值：`web/core.js` 的 `buildChecks()`
 - 改抓包截断长度：`capture.ps1` 里的 `--pkt-size`
 - 换图表/配色：`web/index.html` 顶部的 CSS 变量
@@ -262,7 +261,6 @@ NetLens.cmd
 ## 系统要求
 
 - Windows 10 1809+ / Windows 11（需要 `pktmon`）
-- 启动器 `NetLens.exe` 依赖系统自带的 .NET Framework 4.x（Win10/11 默认就有）
 - 抓包需要管理员权限；仅分析文件不需要
 - 浏览器：Edge / Chrome / Firefox 等现代浏览器
 - 不依赖 Python、Node、Wireshark、Npcap
@@ -273,11 +271,7 @@ NetLens.cmd
 
 ```
 NetLens\
-├─ NetLens.exe        推荐入口（托盘启动器，需要管理员）
-├─ NetLens.cmd        命令行入口（备选）
-├─ src\               启动器 C# 源码 + 管理员清单
-├─ assets\            图标
-├─ build-exe.ps1      重新编译 NetLens.exe
+├─ NetLens.cmd        双击入口
 ├─ NetLens.ps1        提权 / 调度 / 本地 HTTP 服务
 ├─ capture.ps1        pktmon 抓包 + 连接采样 + etl→pcapng
 ├─ web\
@@ -288,8 +282,6 @@ NetLens\
 ├─ screenshot.png             界面截图
 ├─ screenshot-dialog.png      抓包设置截图
 ├─ captures\          抓包结果（已 gitignore）
-├─ CODE_SIGNING.md    代码签名政策
-├─ .github\            CI（构建 NetLens.exe）
 ├─ LICENSE            MIT
 └─ README.md
 ```
@@ -309,17 +301,6 @@ const r = C.analyze(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLe
 });
 console.log(r.meta, r.checks);
 ```
-
----
-
-## Code signing policy（代码签名政策）
-
-Windows 构建的代码签名由 [SignPath Foundation](https://signpath.org/) 提供（**申请中**），完整说明见
-[CODE_SIGNING.md](CODE_SIGNING.md)。
-
-- 在获批之前，发布的是**未签名**构建；请用 Release 页面的 SHA-256 校验下载文件
-- 构建由 GitHub Actions 在 `windows-latest` 上执行 `build-exe.ps1`，产物可追溯
-- 隐私：本程序不会向其他网络系统传输任何信息，除非用户明确请求；抓包文件只保存在本机
 
 ---
 

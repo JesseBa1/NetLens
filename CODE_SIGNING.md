@@ -4,10 +4,11 @@ Free code signing provided by [SignPath.io](https://about.signpath.io/), certifi
 
 ## Status
 
-Application submitted to the SignPath Foundation OSS program on 2026-11-25.
+**Paused.** The `NetLens.exe` launcher is not part of the current release (v1.5.2 and later), so
+code signing is on hold. The source of the launcher is kept in `src/` for a possible future release.
 
-Until the application is approved, Windows builds are **unsigned**. You can verify a download with the
-SHA-256 digest shown on the GitHub release page (`gh release view vX.Y.Z --json assets`).
+Until signing is enabled, releases are unsigned; verify downloads with the SHA-256 digest shown on the
+GitHub release page (`gh release view vX.Y.Z --json assets`).
 
 ## Team roles
 
